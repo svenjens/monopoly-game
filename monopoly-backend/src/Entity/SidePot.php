@@ -49,6 +49,17 @@ class SidePot
     }
 
     /**
+     * Add money to the side pot.
+     * Generic method for adding money (taxes, fines, etc.)
+     * 
+     * @param int $amount Amount to add
+     */
+    public function addBalance(int $amount): void
+    {
+        $this->balance += $amount;
+    }
+
+    /**
      * Collect all money from the side pot.
      * Called when a player lands on Free Parking.
      * Resets the pot to zero and returns the collected amount.
