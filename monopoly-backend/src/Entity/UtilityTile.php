@@ -63,28 +63,18 @@ class UtilityTile extends Tile
      */
     public function onLand(Game $game, Player $player): array
     {
-        // Utility is unowned - attempt to purchase
+        // Utility is unowned - offer to purchase
         if ($this->owner === null) {
-            if ($player->getBalance() >= self::PRICE) {
-                // Auto-purchase utility
-                $player->deductBalance(self::PRICE);
-                $game->getBank()->addBalance(self::PRICE);
-                $this->owner = $player;
-                $player->addProperty($this);
-
-                return [
-                    'action' => 'utility_purchased',
-                    'amount' => self::PRICE,
-                    'property' => $this->name,
-                    'message' => sprintf('%s kocht %s voor €%s', $player->getName(), $this->name, number_format(self::PRICE, 0, ',', '.')),
-                ];
-            }
-
-            // Cannot afford utility
+            $canAfford = $player->getBalance() >= self::PRICE;
+            
             return [
-                'action' => 'insufficient_funds',
-                'amount' => 0,
-                'message' => sprintf('%s cannot afford %s (costs %d)', $player->getName(), $this->name, self::PRICE),
+                'action' => 'property_available',
+                'propertyName' => $this->name,
+                'price' => self::PRICE,
+                'canAfford' => $canAfford,
+                'message' => $canAfford 
+                    ? sprintf('%s kan %s kopen voor €%s', $player->getName(), $this->name, number_format(self::PRICE, 0, ',', '.'))
+                    : sprintf('%s heeft niet genoeg geld voor %s (kost €%s)', $player->getName(), $this->name, number_format(self::PRICE, 0, ',', '.')),
             ];
         }
 

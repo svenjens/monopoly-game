@@ -242,6 +242,193 @@ class GameController extends AbstractController
     }
 
     /**
+     * Purchase a property.
+     * 
+     * POST /api/games/{id}/purchase
+     * 
+     * @param string $id Game identifier
+     * @return JsonResponse Purchase result with updated game state
+     */
+    #[Route('/{id}/purchase', name: 'purchase', methods: ['POST'])]
+    public function purchaseProperty(string $id, Request $request): JsonResponse
+    {
+        $game = $this->gameRepository->find($id);
+
+        if (!$game) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Game not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $player = $game->getCurrentPlayer();
+            $tile = $game->getBoard()->getTile($player->getPosition());
+
+            // Check if tile is a purchasable property
+            if (!method_exists($tile, 'getOwner') || !method_exists($tile, 'setOwner')) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'This tile is not a property',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Check if property is already owned
+            if ($tile->getOwner() !== null) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Property is already owned',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Get price
+            $price = method_exists($tile, 'getPrice') ? $tile->getPrice() : 0;
+
+            // Check if player can afford it
+            if ($player->getBalance() < $price) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Insufficient funds',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Execute purchase
+            $player->deductBalance($price);
+            $game->getBank()->addBalance($price);
+            $tile->setOwner($player);
+            $player->addProperty($tile);
+
+            $this->gameRepository->save($game);
+
+            // Build response
+            $gameState = GameStateDTO::fromGame($game);
+
+            $purchaseResult = [
+                'action' => 'property_purchased',
+                'propertyName' => $tile->getName(),
+                'price' => $price,
+                'player' => [
+                    'id' => $player->getId(),
+                    'name' => $player->getName(),
+                    'balance' => $player->getBalance(),
+                ],
+                'message' => sprintf('%s kocht %s voor €%s', $player->getName(), $tile->getName(), number_format($price, 0, ',', '.')),
+            ];
+
+            // Broadcast property:purchased event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'property:purchased',
+                [
+                    'purchase' => $purchaseResult,
+                    'gameState' => $gameState->toArray(),
+                ]
+            );
+
+            return $this->json([
+                'success' => true,
+                'data' => [
+                    'purchase' => $purchaseResult,
+                    'gameState' => $gameState->toArray(),
+                ],
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Pay €50 to get out of jail.
+     * 
+     * POST /api/games/{id}/pay-jail
+     * 
+     * @param string $id Game identifier
+     * @return JsonResponse Result with updated game state
+     */
+    #[Route('/{id}/pay-jail', name: 'pay_jail', methods: ['POST'])]
+    public function payJailFee(string $id): JsonResponse
+    {
+        $game = $this->gameRepository->find($id);
+
+        if (!$game) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Game not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $player = $game->getCurrentPlayer();
+
+            // Check if player is in jail
+            if (!$player->isInJail()) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Player is not in jail',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $jailFee = 50;
+
+            // Check if player can afford it
+            if ($player->getBalance() < $jailFee) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Insufficient funds to pay jail fee',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Pay and release
+            $player->deductBalance($jailFee);
+            $game->getBank()->addBalance($jailFee);
+            $player->releaseFromJail();
+
+            $this->gameRepository->save($game);
+
+            // Build response
+            $gameState = GameStateDTO::fromGame($game);
+
+            $jailResult = [
+                'released' => true,
+                'paid' => $jailFee,
+                'player' => [
+                    'id' => $player->getId(),
+                    'name' => $player->getName(),
+                    'balance' => $player->getBalance(),
+                    'inJail' => false,
+                ],
+                'message' => sprintf('%s betaalde €50 om uit de gevangenis te komen', $player->getName()),
+            ];
+
+            // Broadcast jail:released event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'jail:released',
+                [
+                    'jail' => $jailResult,
+                    'gameState' => $gameState->toArray(),
+                ]
+            );
+
+            return $this->json([
+                'success' => true,
+                'data' => [
+                    'jail' => $jailResult,
+                    'gameState' => $gameState->toArray(),
+                ],
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    /**
      * End a game.
      * 
      * POST /api/games/{id}/end

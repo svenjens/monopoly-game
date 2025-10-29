@@ -57,28 +57,18 @@ class RailroadTile extends Tile
      */
     public function onLand(Game $game, Player $player): array
     {
-        // Railroad is unowned - attempt to purchase
+        // Railroad is unowned - offer to purchase
         if ($this->owner === null) {
-            if ($player->getBalance() >= self::BASE_PRICE) {
-                // Auto-purchase railroad
-                $player->deductBalance(self::BASE_PRICE);
-                $game->getBank()->addBalance(self::BASE_PRICE);
-                $this->owner = $player;
-                $player->addProperty($this);
-
-                return [
-                    'action' => 'railroad_purchased',
-                    'amount' => self::BASE_PRICE,
-                    'property' => $this->name,
-                    'message' => sprintf('%s kocht %s voor €%s', $player->getName(), $this->name, number_format(self::BASE_PRICE, 0, ',', '.')),
-                ];
-            }
-
-            // Cannot afford railroad
+            $canAfford = $player->getBalance() >= self::BASE_PRICE;
+            
             return [
-                'action' => 'insufficient_funds',
-                'amount' => 0,
-                'message' => sprintf('%s cannot afford %s (costs %d)', $player->getName(), $this->name, self::BASE_PRICE),
+                'action' => 'property_available',
+                'propertyName' => $this->name,
+                'price' => self::BASE_PRICE,
+                'canAfford' => $canAfford,
+                'message' => $canAfford 
+                    ? sprintf('%s kan %s kopen voor €%s', $player->getName(), $this->name, number_format(self::BASE_PRICE, 0, ',', '.'))
+                    : sprintf('%s heeft niet genoeg geld voor %s (kost €%s)', $player->getName(), $this->name, number_format(self::BASE_PRICE, 0, ',', '.')),
             ];
         }
 
