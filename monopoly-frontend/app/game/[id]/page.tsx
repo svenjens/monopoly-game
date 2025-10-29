@@ -190,7 +190,16 @@ export default function GamePage() {
         setCurrentPlayerId(storedPlayerId);
       }
     }
-  }, [currentPlayerId, gameId, setCurrentPlayerId]); // Run whenever currentPlayerId changes
+  }, [currentPlayerId, gameId, setCurrentPlayerId]);
+  
+  /**
+   * Close property offer dialog when it's no longer your turn.
+   */
+  useEffect(() => {
+    if (propertyOffer && !isMyTurn) {
+      setPropertyOffer(null);
+    }
+  }, [isMyTurn, propertyOffer]); // Run whenever currentPlayerId changes
   
   /**
    * Restore player ID from game data if we have a name match but no stored ID.
@@ -528,6 +537,9 @@ export default function GamePage() {
       toast.warning('Het is niet jouw beurt');
       return;
     }
+    
+    // Close any open dialogs from previous turn
+    setPropertyOffer(null);
     
     // Rate limiting for dice rolls
     if (!rateLimiter.isAllowed(`roll-dice-${gameId}`, 10, 10000)) {
