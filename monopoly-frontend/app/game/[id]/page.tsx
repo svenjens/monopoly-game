@@ -1182,13 +1182,23 @@ export default function GamePage() {
                         <span className="text-gray-900 font-medium">Dobbelstenen:</span>
                         <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.dice.dice1} + {lastTurnResult.dice.dice2} = {lastTurnResult.dice.total}</span>
                       </div>
-                      <div>
-                        <span className="text-gray-900 font-medium">Verplaatst:</span>
-                        <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.movement.oldPosition} → {lastTurnResult.movement.newPosition}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-gray-900">{lastTurnResult.tileInteraction.message}</p>
-                      </div>
+                      {lastTurnResult.movement && (
+                        <div>
+                          <span className="text-gray-900 font-medium">Verplaatst:</span>
+                          <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.movement.oldPosition} → {lastTurnResult.movement.newPosition}</span>
+                        </div>
+                      )}
+                      {lastTurnResult.jail && (
+                        <div className="col-span-2">
+                          <span className="text-gray-900 font-medium">Gevangenis:</span>
+                          <span className="ml-2 text-gray-900">{lastTurnResult.jail.message}</span>
+                        </div>
+                      )}
+                      {lastTurnResult.tileInteraction && (
+                        <div className="col-span-2">
+                          <p className="text-gray-900">{lastTurnResult.tileInteraction.message}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
