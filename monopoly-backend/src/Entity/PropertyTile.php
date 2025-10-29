@@ -95,15 +95,18 @@ class PropertyTile extends Tile
 
         // Property is owned by another player - pay rent
         if ($this->owner !== $player) {
-            $player->deductBalance($this->rent);
-            $this->owner->addBalance($this->rent);
+            // Calculate rent (double if owner has monopoly)
+            $actualRent = $this->calculateRent($game);
+            
+            $player->deductBalance($actualRent);
+            $this->owner->addBalance($actualRent);
 
             return [
                 'action' => 'rent_paid',
-                'amount' => $this->rent,
+                'amount' => $actualRent,
                 'beneficiary' => $this->owner->getName(),
                 'property' => $this->name,
-                'message' => sprintf('%s betaalde €%s huur aan %s voor %s', $player->getName(), number_format($this->rent, 0, ',', '.'), $this->owner->getName(), $this->name),
+                'message' => sprintf('%s betaalde €%s huur aan %s voor %s', $player->getName(), number_format($actualRent, 0, ',', '.'), $this->owner->getName(), $this->name),
             ];
         }
 
@@ -135,7 +138,7 @@ class PropertyTile extends Tile
         return $this->owner;
     }
 
-    public function setOwner(Player $player): void
+    public function setOwner(?Player $player): void
     {
         $this->owner = $player;
     }
@@ -148,6 +151,56 @@ class PropertyTile extends Tile
     public function canBePurchased(Player $player): bool
     {
         return $this->owner === null && $player->getBalance() >= $this->price;
+    }
+
+    /**
+     * Calculate the actual rent for this property.
+     * Rent is doubled if the owner has a monopoly (owns all properties of this color).
+     * 
+     * @param Game $game The current game instance
+     * @return int The calculated rent amount
+     */
+    private function calculateRent(Game $game): int
+    {
+        if ($this->owner === null) {
+            return 0;
+        }
+
+        // Check if owner has monopoly on this color group
+        $hasMonopoly = $this->ownerHasMonopoly($game);
+
+        // Double rent for monopoly
+        return $hasMonopoly ? $this->rent * 2 : $this->rent;
+    }
+
+    /**
+     * Check if the current owner has a monopoly on this property's color group.
+     * 
+     * @param Game $game The current game instance
+     * @return bool True if owner owns all properties of this color
+     */
+    private function ownerHasMonopoly(Game $game): bool
+    {
+        if ($this->owner === null) {
+            return false;
+        }
+
+        // Get all properties of the same color from the board
+        $colorGroupProperties = [];
+        foreach ($game->getBoard()->getTiles() as $tile) {
+            if ($tile instanceof PropertyTile && $tile->getColor() === $this->color) {
+                $colorGroupProperties[] = $tile;
+            }
+        }
+
+        // Check if owner owns all properties in this color group
+        foreach ($colorGroupProperties as $property) {
+            if ($property->getOwner() !== $this->owner) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 

@@ -112,9 +112,11 @@ class GameEngine
         // Step 5: Check for bankruptcy
         $bankruptcyResult = $this->checkBankruptcy($game, $player);
         
-        // Step 6: Advance to next player (if game not finished)
-        if (!$bankruptcyResult['isBankrupt']) {
-            $game->nextTurn();
+        // Step 6: Advance to next player (skip if game ended)
+        $gameEnded = $bankruptcyResult['isBankrupt'] && $bankruptcyResult['gameEnded'];
+        if (!$gameEnded) {
+            // Move to next active player
+            $this->advanceToNextActivePlayer($game);
         }
 
         // Return complete turn result
@@ -133,12 +135,37 @@ class GameEngine
             'movement' => $movementResult,
             'tileInteraction' => $tileInteraction,
             'bankruptcy' => $bankruptcyResult,
-            'nextPlayer' => [
+            'nextPlayer' => !$gameEnded ? [
                 'id' => $game->getCurrentPlayer()->getId(),
                 'name' => $game->getCurrentPlayer()->getName(),
-            ],
+            ] : null,
             'gameFinished' => $game->isFinished(),
         ];
+    }
+
+    /**
+     * Advance to the next active player.
+     * Skips inactive (bankrupt) players.
+     * 
+     * @param Game $game The current game instance
+     */
+    private function advanceToNextActivePlayer(Game $game): void
+    {
+        $players = $game->getPlayers();
+        $playerCount = count($players);
+        $currentIndex = $game->getCurrentPlayerIndex();
+        
+        // Find next active player
+        $attempts = 0;
+        do {
+            $game->nextTurn();
+            $attempts++;
+            
+            // Safety check to prevent infinite loop
+            if ($attempts > $playerCount) {
+                break;
+            }
+        } while (!$game->getCurrentPlayer()->isActive() && $attempts < $playerCount);
     }
 
     /**
@@ -238,6 +265,7 @@ class GameEngine
         $player->incrementJailTurns();
         $isDoubles = $diceResult['dice1'] === $diceResult['dice2'];
         $jailFee = 50;
+        $currentJailTurns = $player->getJailTurns();
         
         // Option 1: Rolled doubles - immediate release
         if ($isDoubles) {
@@ -247,7 +275,7 @@ class GameEngine
                 'inJail' => false,
                 'released' => true,
                 'releaseMethod' => 'doubles',
-                'turnsInJail' => $player->getJailTurns(),
+                'turnsInJail' => $currentJailTurns,
                 'message' => sprintf(
                     '%s gooide dubbel (%d-%d) en is bevrijd uit de gevangenis!',
                     $player->getName(),
@@ -258,7 +286,7 @@ class GameEngine
         }
         
         // Option 2: After 3 turns - automatic release (must pay)
-        if ($player->getJailTurns() >= 3) {
+        if ($currentJailTurns >= 3) {
             // Player must pay to get out
             $player->deductBalance($jailFee);
             $bank->addBalance($jailFee);
@@ -269,7 +297,7 @@ class GameEngine
                 'released' => true,
                 'releaseMethod' => 'max_turns',
                 'paid' => $jailFee,
-                'turnsInJail' => 3,
+                'turnsInJail' => $currentJailTurns,
                 'message' => sprintf(
                     '%s heeft 3 beurten in de gevangenis gezeten en moet €%d betalen om vrij te komen',
                     $player->getName(),
@@ -282,19 +310,23 @@ class GameEngine
         return [
             'inJail' => true,
             'released' => false,
-            'turnsInJail' => $player->getJailTurns(),
-            'turnsRemaining' => 3 - $player->getJailTurns(),
+            'turnsInJail' => $currentJailTurns,
+            'turnsRemaining' => 3 - $currentJailTurns,
             'message' => sprintf(
                 '%s zit in de gevangenis (beurt %d/3). Gooi dubbel om vrij te komen!',
                 $player->getName(),
-                $player->getJailTurns()
+                $currentJailTurns
             ),
         ];
     }
 
     /**
-     * Check if a player is bankrupt and handle game ending.
+     * Check if a player is bankrupt and handle bankruptcy.
      * A player is bankrupt if their balance is negative.
+     * When bankrupt:
+     * - Player becomes inactive
+     * - All properties return to the bank (become available for purchase)
+     * - Game ends only when one player remains
      * 
      * @param Game $game The current game instance
      * @param Player $player The player to check
@@ -308,19 +340,30 @@ class GameEngine
             // Mark player as inactive
             $player->setActive(false);
             
-            // End the game
-            $game->finish();
+            // Return all properties to the bank
+            $releasedProperties = [];
+            foreach ($player->getProperties() as $property) {
+                $property->setOwner(null);
+                $releasedProperties[] = $property->getName();
+            }
+            $player->clearProperties();
             
-            // Find winner (player with highest balance)
+            // Check if game should end (only 1 active player left)
             $activePlayers = array_filter($game->getPlayers(), fn($p) => $p->isActive());
-            $winner = null;
-            $highestBalance = PHP_INT_MIN;
+            $activePlayerCount = count($activePlayers);
             
-            foreach ($activePlayers as $activePlayer) {
-                if ($activePlayer->getBalance() > $highestBalance) {
-                    $highestBalance = $activePlayer->getBalance();
-                    $winner = $activePlayer;
-                }
+            $winner = null;
+            $gameEnded = false;
+            
+            if ($activePlayerCount === 1) {
+                // Game ends - one winner remains
+                $game->finish();
+                $gameEnded = true;
+                $winner = reset($activePlayers); // Get the only remaining player
+            } elseif ($activePlayerCount === 0) {
+                // Edge case: all players bankrupt (shouldn't happen)
+                $game->finish();
+                $gameEnded = true;
             }
             
             return [
@@ -330,16 +373,26 @@ class GameEngine
                     'name' => $player->getName(),
                     'balance' => $player->getBalance(),
                 ],
+                'releasedProperties' => $releasedProperties,
+                'activePlayers' => $activePlayerCount,
+                'gameEnded' => $gameEnded,
                 'winner' => $winner ? [
                     'id' => $winner->getId(),
                     'name' => $winner->getName(),
                     'balance' => $winner->getBalance(),
                 ] : null,
-                'message' => sprintf(
-                    '%s is failliet! Het spel is afgelopen. %s heeft gewonnen!',
-                    $player->getName(),
-                    $winner ? $winner->getName() : 'Niemand'
-                ),
+                'message' => $gameEnded 
+                    ? sprintf(
+                        '%s is failliet! %s heeft gewonnen met €%s!',
+                        $player->getName(),
+                        $winner ? $winner->getName() : 'Niemand',
+                        $winner ? number_format($winner->getBalance(), 0, ',', '.') : '0'
+                    )
+                    : sprintf(
+                        '%s is failliet en uit het spel! %d speler(s) over.',
+                        $player->getName(),
+                        $activePlayerCount
+                    ),
             ];
         }
         

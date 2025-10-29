@@ -141,7 +141,7 @@ class UtilityTile extends Tile
         return $this->owner;
     }
 
-    public function setOwner(Player $player): void
+    public function setOwner(?Player $player): void
     {
         $this->owner = $player;
     }

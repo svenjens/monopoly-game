@@ -285,5 +285,14 @@ class Player
         $this->inJail = false;
         $this->jailTurns = 0;
     }
+
+    /**
+     * Clear all properties owned by this player.
+     * Used when a player goes bankrupt.
+     */
+    public function clearProperties(): void
+    {
+        $this->properties = [];
+    }
 }
 
