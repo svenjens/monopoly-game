@@ -39,6 +39,7 @@ export interface Player {
   isActive: boolean;
   inJail: boolean;
   jailTurns: number;
+  properties?: Tile[]; // Array of owned properties
 }
 
 /**
@@ -126,9 +127,19 @@ export interface TurnResult {
     balance: number;
     position: number;
   };
-  dice: DiceResult;
-  movement: MovementResult;
-  tileInteraction: TileInteraction;
+  dice?: DiceResult;
+  movement?: MovementResult;
+  tileInteraction?: TileInteraction;
+  jail?: {
+    released: boolean;
+    message: string;
+    jailTurns?: number;
+  };
+  bankruptcy?: {
+    isBankrupt: boolean;
+    message: string;
+  };
+  gameFinished?: boolean;
   nextPlayer: {
     id: string;
     name: string;

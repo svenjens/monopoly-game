@@ -42,7 +42,22 @@ class GameStateDTO
         $dto->lastActivityAt = $game->getLastActivityAt()->format('Y-m-d H:i:s');
 
         // Convert players to array
-        $dto->players = array_map(function($player) {
+        $dto->players = array_map(function($player) use ($game) {
+            // Convert player's properties to array
+            $properties = array_map(function($property) {
+                return [
+                    'position' => $property->getPosition(),
+                    'name' => $property->getName(),
+                    'type' => $property->getType()->value,
+                    'color' => method_exists($property, 'getColor') ? $property->getColor() : null,
+                    'price' => method_exists($property, 'getPrice') ? $property->getPrice() : null,
+                    'rent' => method_exists($property, 'getRent') ? $property->getRent() : 
+                              (method_exists($property, 'calculateRent') ? $property->calculateRent($game) : null),
+                    'houses' => method_exists($property, 'getHouses') ? $property->getHouses() : null,
+                    'buildCost' => method_exists($property, 'getBuildCost') ? $property->getBuildCost() : null,
+                ];
+            }, $player->getProperties());
+            
             return [
                 'id' => $player->getId(),
                 'name' => $player->getName(),
@@ -55,6 +70,7 @@ class GameStateDTO
                 'isActive' => $player->isActive(),
                 'inJail' => $player->isInJail(),
                 'jailTurns' => $player->getJailTurns(),
+                'properties' => $properties,
             ];
         }, $game->getPlayers());
 
