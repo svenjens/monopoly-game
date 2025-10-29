@@ -467,9 +467,9 @@ export default function GamePage() {
    */
   const handleCopyGameLink = async () => {
     try {
-      // Get current player name for auto-join
-      const currentPlayerName = myPlayer?.name || '';
-      const gameUrl = `${window.location.origin}/game/${gameId}${currentPlayerName ? `?name=${encodeURIComponent(currentPlayerName)}` : ''}`;
+      // Share just the game URL without any player name
+      // This allows others to enter their own name when joining
+      const gameUrl = `${window.location.origin}/game/${gameId}`;
       
       await navigator.clipboard.writeText(gameUrl);
       setCopied(true);

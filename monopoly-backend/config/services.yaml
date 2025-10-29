@@ -35,4 +35,8 @@ services:
     App\Service\GameEngine:
         arguments:
             $diceService: '@App\Service\DiceService'
+    
+    # WebSocketBroadcaster for real-time updates
+    App\Service\WebSocketBroadcaster:
+        shared: true
 

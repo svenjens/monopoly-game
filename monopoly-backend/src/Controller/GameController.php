@@ -8,6 +8,7 @@ use App\Entity\Game;
 use App\Enum\PlayerToken;
 use App\Repository\GameRepository;
 use App\Service\GameEngine;
+use App\Service\WebSocketBroadcaster;
 use App\DTO\GameStateDTO;
 use App\DTO\TurnResultDTO;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,7 +28,8 @@ class GameController extends AbstractController
 {
     public function __construct(
         private readonly GameRepository $gameRepository,
-        private readonly GameEngine $gameEngine
+        private readonly GameEngine $gameEngine,
+        private readonly WebSocketBroadcaster $broadcaster
     ) {}
 
     /**
@@ -131,12 +133,37 @@ class GameController extends AbstractController
             $this->gameRepository->save($game);
 
             // Auto-start game if minimum players reached
+            $gameStarted = false;
             if (count($game->getPlayers()) >= 2 && !$game->isStarted()) {
                 $game->start();
                 $this->gameRepository->save($game);
+                $gameStarted = true;
             }
 
             $gameState = GameStateDTO::fromGame($game);
+
+            // Broadcast player:joined event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'player:joined',
+                [
+                    'player' => [
+                        'id' => $player->getId(),
+                        'name' => $player->getName(),
+                        'token' => $player->getToken()->value,
+                    ],
+                    'game' => $gameState->toArray(),
+                ]
+            );
+
+            // If game just started, also broadcast game:started
+            if ($gameStarted) {
+                $this->broadcaster->broadcastToGame(
+                    $id,
+                    'game:started',
+                    ['game' => $gameState->toArray()]
+                );
+            }
 
             return $this->json([
                 'success' => true,
@@ -194,6 +221,13 @@ class GameController extends AbstractController
             $gameState = GameStateDTO::fromGame($game);
             $turnResultDTO = TurnResultDTO::fromTurnResult($turnResult, $gameState);
 
+            // Broadcast turn:ended event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'turn:ended',
+                $turnResultDTO->toArray()
+            );
+
             return $this->json([
                 'success' => true,
                 'message' => 'Turn executed successfully',
@@ -232,6 +266,13 @@ class GameController extends AbstractController
             $this->gameRepository->save($game);
 
             $gameState = GameStateDTO::fromGame($game);
+
+            // Broadcast game:ended event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'game:ended',
+                ['game' => $gameState->toArray()]
+            );
 
             return $this->json([
                 'success' => true,
