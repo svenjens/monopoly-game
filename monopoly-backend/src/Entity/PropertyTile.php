@@ -34,6 +34,17 @@ class PropertyTile extends Tile
     private int $rent;
 
     /**
+     * The cost to build one house on this property.
+     */
+    private int $buildCost;
+
+    /**
+     * The number of houses on this property (0-4).
+     * 5 means hotel.
+     */
+    private int $houses = 0;
+
+    /**
      * The player who owns this property (null if unowned).
      */
     private ?Player $owner = null;
@@ -46,13 +57,15 @@ class PropertyTile extends Tile
      * @param string $color Color group
      * @param int $price Purchase price
      * @param int $rent Base rent amount
+     * @param int $buildCost Cost to build one house (defaults to €50)
      */
-    public function __construct(int $position, string $name, string $color, int $price, int $rent)
+    public function __construct(int $position, string $name, string $color, int $price, int $rent, int $buildCost = 50)
     {
         parent::__construct($position, $name, TileType::PROPERTY);
         $this->color = $color;
         $this->price = $price;
         $this->rent = $rent;
+        $this->buildCost = $buildCost;
     }
 
     /**
@@ -143,9 +156,85 @@ class PropertyTile extends Tile
         return $this->owner === null && $player->getBalance() >= $this->price;
     }
 
+    public function getBuildCost(): int
+    {
+        return $this->buildCost;
+    }
+
+    public function getHouses(): int
+    {
+        return $this->houses;
+    }
+
+    public function hasHotel(): bool
+    {
+        return $this->houses === 5;
+    }
+
+    /**
+     * Build a house on this property.
+     * 
+     * @throws \RuntimeException If building is not allowed
+     */
+    public function buildHouse(): void
+    {
+        if ($this->houses >= 5) {
+            throw new \RuntimeException('Cannot build more than a hotel');
+        }
+
+        $this->houses++;
+    }
+
+    /**
+     * Sell a house from this property.
+     * Returns half the build cost.
+     * 
+     * @return int Amount refunded
+     */
+    public function sellHouse(): int
+    {
+        if ($this->houses === 0) {
+            throw new \RuntimeException('No houses to sell');
+        }
+
+        $this->houses--;
+        return (int)($this->buildCost / 2);
+    }
+
+    /**
+     * Check if a house can be built on this property.
+     * Requires monopoly ownership.
+     * 
+     * @param Game $game The current game instance
+     * @return bool True if building is allowed
+     */
+    public function canBuildHouse(Game $game): bool
+    {
+        // Must have owner
+        if ($this->owner === null) {
+            return false;
+        }
+
+        // Cannot exceed hotel
+        if ($this->houses >= 5) {
+            return false;
+        }
+
+        // Must have monopoly
+        return $this->ownerHasMonopoly($game);
+    }
+
     /**
      * Calculate the actual rent for this property.
-     * Rent is doubled if the owner has a monopoly (owns all properties of this color).
+     * 
+     * Rent calculation:
+     * - No monopoly: base rent
+     * - Monopoly, no houses: 2x base rent
+     * - 1 house: 5x base rent
+     * - 2 houses: 10x base rent
+     * - 3 houses: 15x base rent
+     * - 4 houses: 20x base rent
+     * - Hotel (5): 25x base rent
      * 
      * @param Game $game The current game instance
      * @return int The calculated rent amount
@@ -156,10 +245,22 @@ class PropertyTile extends Tile
             return 0;
         }
 
-        // Check if owner has monopoly on this color group
+        // If there are houses/hotel, use house-based rent
+        if ($this->houses > 0) {
+            return match($this->houses) {
+                1 => $this->rent * 5,   // 1 house
+                2 => $this->rent * 10,  // 2 houses
+                3 => $this->rent * 15,  // 3 houses
+                4 => $this->rent * 20,  // 4 houses
+                5 => $this->rent * 25,  // Hotel
+                default => $this->rent,
+            };
+        }
+
+        // No houses: check if owner has monopoly
         $hasMonopoly = $this->ownerHasMonopoly($game);
 
-        // Double rent for monopoly
+        // Double rent for monopoly without houses
         return $hasMonopoly ? $this->rent * 2 : $this->rent;
     }
 
