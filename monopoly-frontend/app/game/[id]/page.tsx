@@ -70,7 +70,6 @@ export default function GamePage() {
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [playerName, setPlayerName] = useState(nameFromUrl);
   const [selectedToken, setSelectedToken] = useState<PlayerToken>('car');
-  const [hasAttemptedAutoJoin, setHasAttemptedAutoJoin] = useState(false);
   
   // WebSocket
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
@@ -145,30 +144,40 @@ export default function GamePage() {
   /**
    * Auto-show join dialog if name is in URL and not yet joined.
    * Only show once - prevent duplicate joins on refresh.
+   * Uses sessionStorage to track if we've already attempted auto-join.
    */
   useEffect(() => {
-    if (!nameFromUrl || !game || game.status !== 'waiting' || hasAttemptedAutoJoin) return;
+    if (!nameFromUrl || !game || game.status !== 'waiting') return;
+    
+    // Check sessionStorage flag to prevent duplicate auto-joins
+    const hasAttempted = sessionStorage.getItem(`game_${gameId}_autoJoinAttempted`);
     
     // Debug logging
     console.log('Auto-join check:', {
       nameFromUrl,
       currentPlayerId,
-      players: game.players.map(p => ({ id: p.id, name: p.name })),
-      hasAttemptedAutoJoin
+      hasAttempted,
+      players: game.players.map(p => ({ id: p.id, name: p.name }))
     });
+    
+    if (hasAttempted) {
+      console.log('Already attempted auto-join, skipping');
+      return;
+    }
     
     // Check if player already in game (by name match)
     const alreadyInGame = game.players.some(p => p.name === nameFromUrl);
     
     // Only show join dialog if not already in game AND no current player ID
     if (!alreadyInGame && !currentPlayerId) {
-      console.log('Showing join dialog for', nameFromUrl);
+      console.log('✅ Showing join dialog for', nameFromUrl);
       setShowJoinDialog(true);
-      setHasAttemptedAutoJoin(true); // Mark that we've attempted auto-join
+      // Mark in sessionStorage that we've attempted (persistent across renders!)
+      sessionStorage.setItem(`game_${gameId}_autoJoinAttempted`, 'true');
     } else {
-      console.log('Not showing join dialog:', { alreadyInGame, currentPlayerId });
+      console.log('❌ Not showing join dialog:', { alreadyInGame, currentPlayerId });
     }
-  }, [nameFromUrl, game, currentPlayerId, hasAttemptedAutoJoin]);
+  }, [nameFromUrl, game, currentPlayerId, gameId]);
 
   /**
    * Poll for game updates.
