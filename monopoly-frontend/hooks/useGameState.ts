@@ -100,57 +100,57 @@ export const useGameState = create<GameState>((set, get) => ({
    */
   handleWebSocketMessage: (message) => {
     const { event, data } = message;
+    
+    console.log('📨 WebSocket event received:', event, data);
 
     switch (event) {
       case WS_EVENTS.CONNECTED:
         set({ isWsConnected: true });
+        console.log('✅ WebSocket connected');
         break;
 
       case WS_EVENTS.GAME_UPDATED:
-        if (data) {
-          set({ game: data });
-        }
-        break;
-
       case WS_EVENTS.PLAYER_JOINED:
-        // Refresh game state
-        if (data?.game) {
-          set({ game: data.game });
-        }
-        break;
-
       case WS_EVENTS.TURN_ENDED:
-        // Update game state after turn
-        if (data?.gameState) {
+        // All these events should update the full game state
+        if (data?.game || data?.gameState || data) {
+          const gameData = data.game || data.gameState || data;
+          console.log('🔄 Updating game state from WebSocket:', gameData);
           set({ 
-            game: data.gameState,
+            game: gameData,
             isRolling: false,
           });
         }
         break;
 
       case WS_EVENTS.DICE_ROLLED:
-        // Could trigger dice animation
-        console.log('Dice rolled:', data);
+        console.log('🎲 Dice rolled:', data);
+        // Could trigger dice animation in future
         break;
 
       case WS_EVENTS.PLAYER_MOVED:
-        // Player position updated
-        console.log('Player moved:', data);
+        console.log('👟 Player moved:', data);
+        // Game state will be updated via TURN_ENDED
         break;
 
       case WS_EVENTS.PROPERTY_PURCHASED:
-        // Property ownership changed
-        console.log('Property purchased:', data);
+        console.log('🏠 Property purchased:', data);
         break;
 
       case WS_EVENTS.RENT_PAID:
-        // Rent transaction occurred
-        console.log('Rent paid:', data);
+        console.log('💰 Rent paid:', data);
+        break;
+
+      case 'subscribed':
+        console.log('✅ Subscribed to game:', data);
+        break;
+
+      case 'pong':
+        // Ping response, connection alive
         break;
 
       default:
-        console.log('Unhandled WebSocket event:', event);
+        console.log('❓ Unhandled WebSocket event:', event, data);
     }
   },
 

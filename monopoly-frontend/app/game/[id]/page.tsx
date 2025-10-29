@@ -239,31 +239,25 @@ export default function GamePage() {
   }, [nameFromUrl, game, currentPlayerId, gameId]);
 
   /**
-   * Poll for game updates.
-   * - During 'waiting': every 3 seconds to see new players joining
-   * - During 'in_progress': every 2 seconds to see turn updates
+   * Poll for game updates - ONLY as fallback when WebSocket disconnected.
+   * WebSocket should handle all real-time updates!
    */
   useEffect(() => {
-    if (!game) return;
-    
-    let pollInterval: NodeJS.Timeout;
-    
-    if (game.status === 'waiting') {
-      pollInterval = setInterval(() => {
-        console.log('Polling for game updates (waiting for players)...');
-        loadGame();
-      }, 3000);
-    } else if (game.status === 'in_progress') {
-      pollInterval = setInterval(() => {
-        console.log('Polling for game updates (in progress)...');
-        loadGame();
-      }, 2000); // Faster polling during active game
+    if (!game || isConnected) {
+      // Don't poll if WebSocket is connected - it will push updates
+      return;
     }
     
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [game?.status]);
+    console.log('⚠️ WebSocket disconnected, using polling as fallback');
+    
+    // Fallback polling (slower) only when WebSocket is down
+    const pollInterval = setInterval(() => {
+      console.log('📡 Fallback polling (WebSocket disconnected)...');
+      loadGame();
+    }, 5000); // Slower fallback polling
+    
+    return () => clearInterval(pollInterval);
+  }, [game?.status, isConnected]);
   
   /**
    * Load game data from API with retry logic.
