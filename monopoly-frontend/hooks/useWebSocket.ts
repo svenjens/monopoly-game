@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { WS_BASE_URL, WS_EVENTS } from '@/lib/constants';
+import { toast } from '@/components/ui/toast';
 import type { WebSocketMessage } from '@/lib/types';
 
 /**
@@ -40,8 +41,10 @@ export function useWebSocket(
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 2000; // 2 seconds
+  const subscriptionsQueue = useRef<Set<string>>(new Set());
+  const hasShownDisconnectToast = useRef(false);
+  const maxReconnectAttempts = 10;
+  const baseReconnectDelay = 1000; // Start with 1 second
 
   /**
    * Send a message through the WebSocket.
@@ -56,13 +59,20 @@ export function useWebSocket(
 
   /**
    * Subscribe to a game's updates.
+   * Queues subscription if not connected.
    */
   const subscribe = useCallback((gameId: string) => {
-    sendMessage({
-      action: 'subscribe',
-      gameId,
-    });
-  }, [sendMessage]);
+    // Add to queue
+    subscriptionsQueue.current.add(gameId);
+    
+    // Send immediately if connected
+    if (isConnected) {
+      sendMessage({
+        action: 'subscribe',
+        gameId,
+      });
+    }
+  }, [sendMessage, isConnected]);
 
   /**
    * Unsubscribe from a game's updates.
@@ -84,8 +94,24 @@ export function useWebSocket(
 
       ws.onopen = () => {
         console.log('WebSocket connected');
+        const wasReconnecting = reconnectAttempts.current > 0;
+        
         setIsConnected(true);
         reconnectAttempts.current = 0;
+        hasShownDisconnectToast.current = false;
+        
+        // Show success toast only after a reconnect
+        if (wasReconnecting) {
+          toast.success('Verbinding hersteld! ✅');
+        }
+        
+        // Re-subscribe to all queued games
+        subscriptionsQueue.current.forEach((gameId) => {
+          ws.send(JSON.stringify({
+            action: 'subscribe',
+            gameId,
+          }));
+        });
 
         // Send ping every 30 seconds to keep connection alive
         const pingInterval = setInterval(() => {
@@ -127,16 +153,30 @@ export function useWebSocket(
           clearInterval((ws as any)._pingInterval);
         }
 
+        // Show disconnect toast only once
+        if (!hasShownDisconnectToast.current && event.code !== 1000) {
+          toast.warning('Verbinding verbroken. Proberen opnieuw te verbinden...');
+          hasShownDisconnectToast.current = true;
+        }
+
         // Attempt to reconnect if not closed intentionally
         if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
-          console.log(`Reconnecting... (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          
+          // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
+          const delay = Math.min(
+            baseReconnectDelay * Math.pow(2, reconnectAttempts.current - 1),
+            30000
+          );
+          
+          console.log(`Reconnecting... (attempt ${reconnectAttempts.current}/${maxReconnectAttempts}) in ${delay}ms`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
-          }, reconnectDelay);
+          }, delay);
         } else if (reconnectAttempts.current >= maxReconnectAttempts) {
           console.error('Max reconnection attempts reached');
+          toast.error('Kan geen verbinding maken. Ververs de pagina.');
         }
       };
 
