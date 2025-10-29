@@ -1,0 +1,35 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    handle_all_throwables: true
+
+    # Enables session support. Note that the session will ONLY be started if you read or write from it.
+    # Remove or comment this section to explicitly disable session support.
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+        storage_factory_id: session.storage.factory.native
+
+    # Uncomment this section to enable a messenger to transport messages
+    #messenger:
+    #    transports:
+    #        # https://symfony.com/doc/current/messenger.html#transport-configuration
+    #        async: '%env(MESSENGER_TRANSPORT_DSN)%'
+    #    routing:
+    #        # Route your messages to the transports
+    #        # 'App\Message\YourMessage': async
+
+    php_errors:
+        log: true
+
+    serializer:
+        enabled: true
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file
+
