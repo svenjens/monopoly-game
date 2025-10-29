@@ -288,22 +288,125 @@ monopoly-game/
 ## 🧪 Tech Stack
 
 ### Backend
-- PHP 8.2
-- Symfony 6
-- Ratchet (WebSocket)
-- In-memory storage
+- **PHP 8.2** - Modern PHP met type hints, enums, attributes
+- **Symfony 6** - Volwassen framework, dependency injection, routing
+- **Ratchet** - Pure PHP WebSocket library, geen Node.js nodig
+- **Redis** - Persistent in-memory storage, sneller dan APCu
+- **Predis** - PHP Redis client, native type support
 
 ### Frontend
-- Next.js 14 (App Router)
-- TypeScript
-- Tailwind CSS
-- Framer Motion (Animaties)
-- Zustand (State Management)
+- **Next.js 14 (App Router)** - React framework, SSR, RSC ready
+- **TypeScript** - Type safety, beter onderhoudbaar
+- **Tailwind CSS** - Utility-first, snel prototypen, klein bundle
+- **Framer Motion** - Smooth animaties, declarative API
+- **Zustand** - Lightweight state management, geen boilerplate
+- **react-confetti** - Winnaar celebratie
 
 ### DevOps
-- Docker & Docker Compose
-- Multi-stage builds
-- Hot reload tijdens development
+- **Docker & Docker Compose** - Reproducible environments
+- **Multi-stage builds** - Kleinere images, sneller deployen
+- **Hot reload** - Snelle development feedback loop
+
+## 💡 Technologie Keuzes - Argumentatie
+
+### Waarom PHP Symfony? 🐘
+**Pro's:**
+- ✅ **Volwassen ecosystem** - 15+ jaar ontwikkeling, battle-tested
+- ✅ **Dependency Injection** - Clean architecture, makkelijk testen
+- ✅ **Type safety** - PHP 8.2 strict types voorkomen bugs
+- ✅ **OOP sterkte** - Perfect voor game entities (Player, Tile, Card)
+- ✅ **Snelle development** - Console commands, auto-routing
+- ✅ **Geen compile step** - Direct runnen, fast iteration
+
+**Con's:**
+- ❌ Minder hip dan Node.js/Go
+- ❌ Threading moeilijker (maar niet nodig voor dit project)
+
+**Conclusie**: Symfony is **perfect** voor object-heavy game logic met complexe entities en business rules.
+
+### Waarom Ratchet (PHP WebSocket)? 🔌
+**Pro's:**
+- ✅ **Pure PHP** - Geen Node.js dependency, 1 taal stack
+- ✅ **Symfony integratie** - Zelfde entities delen
+- ✅ **Resource efficient** - Async I/O, event-driven
+- ✅ **Direct Redis access** - Kan game state lezen
+
+**Alternatief overwogen**: Mercure (Symfony native)
+- ❌ Extra dependency (Mercure hub)
+- ❌ More complex setup
+
+**Conclusie**: Ratchet is **simpeler** en voldoende voor ons gebruik.
+
+### Waarom Redis? 📦
+**Pro's:**
+- ✅ **Persistent in-memory** - Overleeft PHP request cycle
+- ✅ **Cross-process** - Backend én WebSocket kunnen lezen
+- ✅ **Atomic operations** - Race conditions voorkomen
+- ✅ **TTL support** - Auto cleanup oude games
+- ✅ **Proven at scale** - Production ready
+
+**Alternatieven overwogen**:
+1. **APCu** - ❌ Per-process, niet gedeeld tussen containers
+2. **Files** - ❌ Lock contention, langzaam
+3. **Database** - ❌ Overkill, te veel overhead
+
+**Conclusie**: Redis is de **enige goede optie** voor shared in-memory state.
+
+### Waarom Next.js 14? ⚛️
+**Pro's:**
+- ✅ **App Router** - Modern React patterns, nested layouts
+- ✅ **Server Components** - Kleinere bundle, betere performance
+- ✅ **Built-in routing** - File-based, geen extra config
+- ✅ **TypeScript native** - Out-of-the-box support
+- ✅ **Hot reload** - Instant feedback loop
+- ✅ **SEO ready** - SSR voor homepage
+
+**Alternatieven overwogen**:
+1. **Vite + React Router** - ❌ Meer setup, geen SSR
+2. **SvelteKit** - ✅ Goed, maar minder ecosystem
+3. **Vue/Nuxt** - ✅ Goed, maar team kent React beter
+
+**Conclusie**: Next.js is **industry standard** voor React apps.
+
+### Waarom Zustand? 🐻
+**Pro's:**
+- ✅ **Minimale boilerplate** - Geen actions/reducers/providers
+- ✅ **Hook-based** - Natuurlijk React patroon
+- ✅ **Tiny bundle** (1kb) - Performance win
+- ✅ **DevTools support** - Debugging makkelijk
+- ✅ **TypeScript friendly** - Goede type inference
+
+**Alternatieven overwogen**:
+1. **Redux** - ❌ Veel boilerplate, overkill
+2. **Context API** - ❌ Re-render issues, geen middleware
+3. **Jotai** - ✅ Ook goed, maar atomic state niet nodig
+
+**Conclusie**: Zustand is **perfect balance** tussen simpel en krachtig.
+
+### Waarom Tailwind CSS? 🎨
+**Pro's:**
+- ✅ **Utility-first** - Snel prototypen, geen CSS files
+- ✅ **Purge unused** - Kleine production bundle (< 10kb)
+- ✅ **Design system** - Consistente spacing/colors
+- ✅ **Responsive** - Mobile-first design makkelijk
+- ✅ **No naming** - Geen BEM/SMACSS hoofdpijn
+
+**Alternatieven overwogen**:
+1. **CSS Modules** - ❌ Meer files, naming overhead
+2. **Styled Components** - ❌ Runtime cost, geen SSR optimize
+3. **Bootstrap** - ❌ Zwaar, moeilijk customizen
+
+**Conclusie**: Tailwind is **fastest way** naar production-ready UI.
+
+### Waarom Docker? 🐳
+**Pro's:**
+- ✅ **Reproducible** - Werkt overal hetzelfde
+- ✅ **Dependencies isolated** - PHP, Redis, Node allemaal apart
+- ✅ **Easy onboarding** - 1 command: `docker-compose up`
+- ✅ **Production ready** - Zelfde container naar staging/prod
+- ✅ **Multi-service** - Backend, Frontend, WebSocket, Redis
+
+**Conclusie**: Docker is **industry standard** voor moderne development.
 
 ## 📝 Development Notes
 
