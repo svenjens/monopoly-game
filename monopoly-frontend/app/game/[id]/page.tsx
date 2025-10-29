@@ -34,12 +34,12 @@ const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 const BOARD_TILES = [
   { pos: 0, name: 'GO', color: 'bg-red-500', type: 'corner' },
   { pos: 1, name: 'Straat 1', color: 'bg-amber-700' },
-  { pos: 2, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 2, name: 'Algemeen Fonds', color: 'bg-cyan-400', icon: '💰' },
   { pos: 3, name: 'Straat 2', color: 'bg-amber-700' },
   { pos: 4, name: 'Belasting', color: 'bg-gray-400' },
   { pos: 5, name: 'Station 1', color: 'bg-black' },
   { pos: 6, name: 'Straat 3', color: 'bg-blue-400' },
-  { pos: 7, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 7, name: 'Kans', color: 'bg-orange-400', icon: '?' },
   { pos: 8, name: 'Straat 4', color: 'bg-blue-400' },
   { pos: 9, name: 'Straat 5', color: 'bg-blue-400' },
   { pos: 10, name: 'Gevangenis', color: 'bg-orange-500', type: 'corner' },
@@ -49,12 +49,12 @@ const BOARD_TILES = [
   { pos: 14, name: 'Straat 8', color: 'bg-purple-600' },
   { pos: 15, name: 'Station 2', color: 'bg-black' },
   { pos: 16, name: 'Straat 9', color: 'bg-orange-600' },
-  { pos: 17, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 17, name: 'Algemeen Fonds', color: 'bg-cyan-400', icon: '💰' },
   { pos: 18, name: 'Straat 10', color: 'bg-orange-600' },
   { pos: 19, name: 'Straat 11', color: 'bg-orange-600' },
   { pos: 20, name: 'Parkeren', color: 'bg-red-500', type: 'corner' },
   { pos: 21, name: 'Straat 12', color: 'bg-red-600' },
-  { pos: 22, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 22, name: 'Kans', color: 'bg-orange-400', icon: '?' },
   { pos: 23, name: 'Straat 13', color: 'bg-red-600' },
   { pos: 24, name: 'Straat 14', color: 'bg-red-600' },
   { pos: 25, name: 'Station 3', color: 'bg-black' },
@@ -65,10 +65,10 @@ const BOARD_TILES = [
   { pos: 30, name: '→ Gevangenis', color: 'bg-orange-500', type: 'corner' },
   { pos: 31, name: 'Straat 18', color: 'bg-green-600' },
   { pos: 32, name: 'Straat 19', color: 'bg-green-600' },
-  { pos: 33, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 33, name: 'Algemeen Fonds', color: 'bg-cyan-400', icon: '💰' },
   { pos: 34, name: 'Straat 20', color: 'bg-green-600' },
   { pos: 35, name: 'Station 4', color: 'bg-black' },
-  { pos: 36, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 36, name: 'Kans', color: 'bg-orange-400', icon: '?' },
   { pos: 37, name: 'Straat 21', color: 'bg-blue-900' },
   { pos: 38, name: 'Belasting', color: 'bg-gray-400' },
   { pos: 39, name: 'Straat 22', color: 'bg-blue-900' },
@@ -942,8 +942,9 @@ export default function GamePage() {
                           )}
                           
                           {/* Tile name */}
-                          <div className="text-[0.5rem] font-bold text-white text-center px-0.5 drop-shadow-md">
-                            {tile.name}
+                          <div className="text-[0.5rem] font-bold text-white text-center px-0.5 drop-shadow-md flex flex-col items-center">
+                            {tile.icon && <span className="text-lg">{tile.icon}</span>}
+                            <span>{tile.name}</span>
                           </div>
                           
                           {/* Players on this tile */}
