@@ -194,7 +194,7 @@ export default function GamePage() {
    * Uses sessionStorage to track if we've already attempted auto-join.
    */
   useEffect(() => {
-    if (!nameFromUrl || !game || game.status !== 'waiting') return;
+    if (!nameFromUrl || !game) return;
     
     // Check sessionStorage flag to prevent duplicate auto-joins
     const hasAttempted = sessionStorage.getItem(`game_${gameId}_autoJoinAttempted`);
@@ -204,25 +204,37 @@ export default function GamePage() {
       nameFromUrl,
       currentPlayerId,
       hasAttempted,
+      gameStatus: game.status,
       players: game.players.map(p => ({ id: p.id, name: p.name }))
     });
     
+    // CRITICAL: If we already have a currentPlayerId, NEVER show join dialog
+    if (currentPlayerId) {
+      console.log('✅ Have currentPlayerId, skip auto-join entirely');
+      return;
+    }
+    
+    // If we've already attempted, don't try again
     if (hasAttempted) {
-      console.log('Already attempted auto-join, skipping');
+      console.log('❌ Already attempted auto-join, skipping');
       return;
     }
     
     // Check if player already in game (by name match)
     const alreadyInGame = game.players.some(p => p.name === nameFromUrl);
+    if (alreadyInGame) {
+      console.log('❌ Player already in game, skipping');
+      // Mark as attempted so we don't check again
+      sessionStorage.setItem(`game_${gameId}_autoJoinAttempted`, 'true');
+      return;
+    }
     
-    // Only show join dialog if not already in game AND no current player ID
-    if (!alreadyInGame && !currentPlayerId) {
+    // Only show if game is waiting AND not already in game
+    if (game.status === 'waiting') {
       console.log('✅ Showing join dialog for', nameFromUrl);
       setShowJoinDialog(true);
-      // Mark in sessionStorage that we've attempted (persistent across renders!)
+      // Mark IMMEDIATELY to prevent re-triggers
       sessionStorage.setItem(`game_${gameId}_autoJoinAttempted`, 'true');
-    } else {
-      console.log('❌ Not showing join dialog:', { alreadyInGame, currentPlayerId });
     }
   }, [nameFromUrl, game, currentPlayerId, gameId]);
 
@@ -528,8 +540,8 @@ export default function GamePage() {
     );
   }
   
-  // Join dialog
-  if (showJoinDialog) {
+  // Join dialog - ONLY show if we don't have a player ID yet
+  if (showJoinDialog && !currentPlayerId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
         <Card className="w-full max-w-md">
