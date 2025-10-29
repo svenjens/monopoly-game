@@ -117,6 +117,13 @@ class Game
             throw new \RuntimeException('Cannot add players to a game in progress');
         }
 
+        // Check if name is already taken
+        foreach ($this->players as $player) {
+            if ($player->getName() === $name) {
+                throw new \RuntimeException('Player name already taken');
+            }
+        }
+
         // Check if token is already taken
         foreach ($this->players as $player) {
             if ($player->getToken() === $token) {

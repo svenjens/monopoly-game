@@ -52,6 +52,20 @@ export default function GamePage() {
   const myPlayer = useMyPlayer();
   const currentPlayer = useCurrentPlayer();
   
+  // Debug turn state
+  useEffect(() => {
+    if (game && currentPlayerId) {
+      console.log('Turn state:', {
+        isMyTurn,
+        currentPlayerId,
+        currentPlayerIndex: game.currentPlayerIndex,
+        currentPlayerInGame: game.players[game.currentPlayerIndex],
+        myPlayer,
+        allPlayers: game.players.map(p => ({ id: p.id, name: p.name, token: p.token }))
+      });
+    }
+  }, [game?.currentPlayerIndex, currentPlayerId, isMyTurn, myPlayer, currentPlayer]);
+  
   // Join game state
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [playerName, setPlayerName] = useState(nameFromUrl);
@@ -102,12 +116,20 @@ export default function GamePage() {
   useEffect(() => {
     if (currentPlayerId || !game || !nameFromUrl) return;
     
+    console.log('Attempting player ID restore:', {
+      currentPlayerId,
+      nameFromUrl,
+      players: game.players.map(p => ({ id: p.id, name: p.name }))
+    });
+    
     // Find player by name
     const matchingPlayer = game.players.find(p => p.name === nameFromUrl);
     if (matchingPlayer) {
-      console.log('Restored player ID from game data (name match):', matchingPlayer.id);
+      console.log('✅ Restored player ID from game data (name match):', matchingPlayer.id);
       setCurrentPlayerId(matchingPlayer.id);
       sessionStorage.setItem(`game_${gameId}_player`, matchingPlayer.id);
+    } else {
+      console.log('❌ No matching player found for name:', nameFromUrl);
     }
   }, [game, currentPlayerId, nameFromUrl, gameId]);
   
@@ -127,13 +149,24 @@ export default function GamePage() {
   useEffect(() => {
     if (!nameFromUrl || !game || game.status !== 'waiting' || hasAttemptedAutoJoin) return;
     
+    // Debug logging
+    console.log('Auto-join check:', {
+      nameFromUrl,
+      currentPlayerId,
+      players: game.players.map(p => ({ id: p.id, name: p.name })),
+      hasAttemptedAutoJoin
+    });
+    
     // Check if player already in game (by name match)
     const alreadyInGame = game.players.some(p => p.name === nameFromUrl);
     
     // Only show join dialog if not already in game AND no current player ID
     if (!alreadyInGame && !currentPlayerId) {
+      console.log('Showing join dialog for', nameFromUrl);
       setShowJoinDialog(true);
       setHasAttemptedAutoJoin(true); // Mark that we've attempted auto-join
+    } else {
+      console.log('Not showing join dialog:', { alreadyInGame, currentPlayerId });
     }
   }, [nameFromUrl, game, currentPlayerId, hasAttemptedAutoJoin]);
 
