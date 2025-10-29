@@ -210,7 +210,27 @@ export default function GamePage() {
     if (propertyOffer && !isMyTurn) {
       setPropertyOffer(null);
     }
-  }, [isMyTurn, propertyOffer]); // Run whenever currentPlayerId changes
+  }, [isMyTurn, propertyOffer]);
+  
+  /**
+   * Handle property offers from lastTurnResult (WebSocket updates).
+   */
+  useEffect(() => {
+    if (!lastTurnResult || !currentPlayerId) return;
+    
+    const tile = lastTurnResult.tileInteraction;
+    const player = lastTurnResult.player;
+    
+    // Only show property dialog if it's for MY player
+    if (tile?.action === 'property_available' && player?.id === currentPlayerId) {
+      console.log('🏠 Setting property offer from lastTurnResult:', tile);
+      setPropertyOffer({
+        propertyName: tile.propertyName,
+        price: tile.price,
+        canAfford: tile.canAfford,
+      });
+    }
+  }, [lastTurnResult, currentPlayerId]); // Run whenever currentPlayerId changes
   
   /**
    * Restore player ID from game data if we have a name match but no stored ID.

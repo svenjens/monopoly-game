@@ -127,7 +127,6 @@ export const useGameState = create<GameState>((set, get) => ({
 
       case WS_EVENTS.GAME_UPDATED:
       case WS_EVENTS.PLAYER_JOINED:
-      case WS_EVENTS.TURN_ENDED:
       case 'game:started':
       case 'game:ended':
       case 'house:built':
@@ -138,6 +137,18 @@ export const useGameState = create<GameState>((set, get) => ({
           set({ 
             game: gameData,
             isRolling: false,
+          });
+        }
+        break;
+      
+      case WS_EVENTS.TURN_ENDED:
+        // turn:ended includes full turn result with tileInteraction
+        console.log('🎯 Turn ended with data:', data);
+        if (data?.gameState) {
+          set({ 
+            game: data.gameState,
+            isRolling: false,
+            lastTurnResult: data, // Store full turn result including tileInteraction
           });
         }
         break;
