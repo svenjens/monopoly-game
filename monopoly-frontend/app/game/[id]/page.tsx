@@ -623,6 +623,14 @@ export default function GamePage() {
           // Property actions
           if (tile.action === 'property_available') {
             // Show property purchase dialog
+            console.log('🏠 Property available:', {
+              propertyName: tile.propertyName,
+              price: tile.price,
+              canAfford: tile.canAfford,
+              isMyTurn,
+              currentPlayerId,
+              playerId: player.id
+            });
             setPropertyOffer({
               propertyName: tile.propertyName,
               price: tile.price,
@@ -1208,6 +1216,7 @@ export default function GamePage() {
                   </div>
                   
                   {/* Property Purchase Dialog */}
+                  {console.log('🔍 Property offer state:', { propertyOffer, isMyTurn, show: !!(propertyOffer && isMyTurn) })}
                   {propertyOffer && isMyTurn && (
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-500 rounded-lg p-4">
                       <h3 className="font-bold text-lg text-gray-900 mb-2">🏠 Property Beschikbaar!</h3>
