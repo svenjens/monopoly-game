@@ -208,6 +208,45 @@ class GameController extends AbstractController
     }
 
     /**
+     * End a game.
+     * 
+     * POST /api/games/{id}/end
+     * 
+     * @param string $id Game identifier
+     * @return JsonResponse Success message
+     */
+    #[Route('/{id}/end', name: 'end', methods: ['POST'])]
+    public function endGame(string $id): JsonResponse
+    {
+        $game = $this->gameRepository->find($id);
+
+        if (!$game) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Game not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $game->finish();
+            $this->gameRepository->save($game);
+
+            $gameState = GameStateDTO::fromGame($game);
+
+            return $this->json([
+                'success' => true,
+                'message' => 'Game ended successfully',
+                'data' => $gameState->toArray(),
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    /**
      * Get board state.
      * 
      * GET /api/games/{id}/board

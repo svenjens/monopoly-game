@@ -225,6 +225,20 @@ export async function getBoard(gameId: string): Promise<ApiResponse<{ tiles: any
 }
 
 /**
+ * End a game (set status to finished).
+ * 
+ * POST /api/games/{id}/end
+ * 
+ * @param gameId - Game identifier
+ * @returns Updated game state
+ */
+export async function endGame(gameId: string): Promise<ApiResponse<Game>> {
+  return apiFetch<Game>(`/api/games/${gameId}/end`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Delete a game.
  * 
  * DELETE /api/games/{id}

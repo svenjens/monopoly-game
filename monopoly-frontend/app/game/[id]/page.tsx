@@ -7,20 +7,24 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getGame, joinGame, rollDice, startGame } from '@/lib/api';
+import { getGame, joinGame, rollDice, startGame, endGame } from '@/lib/api';
 import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '@/lib/validation';
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import type { PlayerToken } from '@/lib/types';
 import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy } from 'lucide-react';
+
+// Dynamic import for Confetti (client-side only)
+const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 export default function GamePage() {
   const params = useParams();
@@ -56,9 +60,36 @@ export default function GamePage() {
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
   
   /**
+   * Determine winner (player with most money) when game is finished.
+   */
+  const winner = useMemo(() => {
+    if (!game || game.status !== 'finished') return null;
+    
+    // Find player with highest balance
+    return game.players.reduce((richest, player) => 
+      player.balance > richest.balance ? player : richest
+    , game.players[0]);
+  }, [game?.status, game?.players]);
+  
+  /**
+   * Show confetti if current player is the winner.
+   */
+  const showConfetti = useMemo(() => {
+    return winner && currentPlayerId && winner.id === currentPlayerId;
+  }, [winner, currentPlayerId]);
+  
+  /**
    * Load game on mount.
    */
+  // Initial load - restore player ID from sessionStorage if exists
   useEffect(() => {
+    // Try to restore player ID from sessionStorage (per-tab, not shared!)
+    const storedPlayerId = sessionStorage.getItem(`game_${gameId}_player`);
+    if (storedPlayerId) {
+      console.log('Restored player ID from sessionStorage:', storedPlayerId);
+      setCurrentPlayerId(storedPlayerId);
+    }
+    
     loadGame();
   }, [gameId]);
   
@@ -212,8 +243,14 @@ export default function GamePage() {
       });
       
       if (response.success && response.data) {
+        const playerId = response.data.player.id;
         setGame(response.data.game);
-        setCurrentPlayerId(response.data.player.id);
+        setCurrentPlayerId(playerId);
+        
+        // Store player ID in sessionStorage (per-tab, not shared between windows!)
+        sessionStorage.setItem(`game_${gameId}_player`, playerId);
+        console.log('Saved player ID to sessionStorage:', playerId);
+        
         setShowJoinDialog(false);
         toast.success(`Welkom ${sanitizedName}! 👋`);
       } else {
@@ -250,6 +287,37 @@ export default function GamePage() {
       }
     } catch (err) {
       const errorMsg = 'Netwerk fout bij starten spel';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  /**
+   * End the game.
+   */
+  const handleEndGame = async () => {
+    if (!confirm('Weet je zeker dat je het spel wilt beëindigen?')) {
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await endGame(gameId);
+      
+      if (response.success && response.data) {
+        setGame(response.data);
+        toast.success('Spel beëindigd! 🏁');
+      } else {
+        const errorMsg = response.error || 'Kon spel niet beëindigen';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      const errorMsg = 'Netwerk fout bij beëindigen spel';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -399,6 +467,9 @@ export default function GamePage() {
   // Game interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
+      {/* Confetti for winner */}
+      {showConfetti && <Confetti recycle={false} numberOfPieces={500} />}
+      
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
@@ -561,6 +632,61 @@ export default function GamePage() {
                 </CardContent>
               </Card>
             )}
+            
+            {/* End Game Button */}
+            {game?.status === 'in_progress' && (
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader>
+                  <CardTitle className="text-red-900 flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Spel Beëindigen
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-red-800 mb-4">
+                    Klaar met spelen? Beëindig het spel en zie de winnaar!
+                  </p>
+                  <Button 
+                    onClick={handleEndGame}
+                    disabled={isLoading}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    {isLoading ? 'Beëindigen...' : 'Beëindig Spel'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Game Finished - Winner Display */}
+            {game?.status === 'finished' && winner && (
+              <Card className="border-yellow-200 bg-yellow-50">
+                <CardHeader>
+                  <CardTitle className="text-yellow-900 flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Winnaar! 🎉
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">
+                      {PLAYER_TOKENS.find(t => t.value === winner.token)?.emoji}
+                    </div>
+                    <p className="text-xl font-bold text-yellow-900 mb-2">
+                      {winner.name}
+                    </p>
+                    <p className="text-lg text-yellow-800">
+                      {formatCurrency(winner.balance)}
+                    </p>
+                    {winner.id === currentPlayerId && (
+                      <p className="text-sm text-yellow-700 mt-4 font-semibold">
+                        🎉 Gefeliciteerd! Je hebt gewonnen!
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
           
           {/* Main Area - Board */}
@@ -573,19 +699,49 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Simplified board visualization */}
-                <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-8 relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
+                {/* Simplified board visualization with player positions */}
+                <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-4 relative">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
-                      <p className="text-6xl font-bold text-green-800 mb-2">MONOPOLY</p>
-                      <p className="text-lg text-green-700">Vereenvoudigde Versie</p>
-                      {myPlayer && (
-                        <div className="mt-6 p-4 bg-white/80 rounded-lg shadow">
-                          <p className="text-sm text-gray-900 font-medium">Your Position</p>
-                          <p className="text-3xl font-bold text-primary">{myPlayer.position}</p>
-                        </div>
-                      )}
+                      <p className="text-4xl font-bold text-green-800 mb-1">MONOPOLY</p>
+                      <p className="text-sm text-green-700">Vereenvoudigde Versie</p>
                     </div>
+                  </div>
+                  
+                  {/* Player positions around the board */}
+                  <div className="relative w-full h-full">
+                    {game?.players.map((player) => {
+                      const token = PLAYER_TOKENS.find(t => t.value === player.token);
+                      // Calculate position on circular board (0-39 positions)
+                      const angle = (player.position / 40) * 360;
+                      const radius = 42; // Distance from center (percentage)
+                      const x = 50 + radius * Math.cos((angle - 90) * Math.PI / 180);
+                      const y = 50 + radius * Math.sin((angle - 90) * Math.PI / 180);
+                      
+                      return (
+                        <div
+                          key={player.id}
+                          className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                          style={{
+                            left: `${x}%`,
+                            top: `${y}%`,
+                          }}
+                        >
+                          <div className={`
+                            bg-white rounded-full p-2 shadow-lg border-2 transition-all
+                            ${player.id === currentPlayerId ? 'border-blue-500 scale-110' : 'border-gray-300'}
+                            ${player.id === currentPlayer?.id ? 'ring-4 ring-yellow-400' : ''}
+                          `}>
+                            <span className="text-2xl">{token?.emoji || '❓'}</span>
+                          </div>
+                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                            <span className="text-xs font-bold text-gray-900 bg-white/90 px-2 py-0.5 rounded">
+                              {player.position}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 
