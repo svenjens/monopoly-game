@@ -18,6 +18,8 @@ import { Gamepad2, Plus, LogIn } from 'lucide-react';
 export default function Home() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [creatorName, setCreatorName] = useState('');
   const [joinGameId, setJoinGameId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +27,11 @@ export default function Home() {
    * Create a new game and navigate to it.
    */
   const handleCreateGame = async () => {
+    if (!creatorName.trim()) {
+      setError('Voer je naam in');
+      return;
+    }
+
     setIsCreating(true);
     setError(null);
 
@@ -32,8 +39,8 @@ export default function Home() {
       const response = await createGame();
       
       if (response.success && response.data) {
-        // Navigate to game page
-        router.push(`/game/${response.data.id}`);
+        // Navigate to game page (will show join dialog)
+        router.push(`/game/${response.data.id}?name=${encodeURIComponent(creatorName)}`);
       } else {
         setError(response.error || 'Failed to create game');
       }
@@ -93,10 +100,16 @@ export default function Home() {
                 Start een nieuw spel en nodig tot 4 spelers uit
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <Input
+                placeholder="Je naam..."
+                value={creatorName}
+                onChange={(e) => setCreatorName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleCreateGame()}
+              />
               <Button
                 onClick={handleCreateGame}
-                disabled={isCreating}
+                disabled={isCreating || !creatorName.trim()}
                 className="w-full"
                 size="lg"
               >

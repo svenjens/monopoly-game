@@ -8,7 +8,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,9 @@ import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy } f
 
 export default function GamePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const gameId = params.id as string;
+  const nameFromUrl = searchParams.get('name') || '';
   
   // State
   const game = useGameState((state) => state.game);
@@ -45,7 +47,7 @@ export default function GamePage() {
   
   // Join game state
   const [showJoinDialog, setShowJoinDialog] = useState(false);
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState(nameFromUrl);
   const [selectedToken, setSelectedToken] = useState<PlayerToken>('car');
   
   // WebSocket
@@ -66,6 +68,15 @@ export default function GamePage() {
       subscribe(gameId);
     }
   }, [isConnected, gameId, subscribe]);
+
+  /**
+   * Auto-show join dialog if name is in URL and not yet joined.
+   */
+  useEffect(() => {
+    if (nameFromUrl && game && !currentPlayerId && game.status === 'waiting') {
+      setShowJoinDialog(true);
+    }
+  }, [nameFromUrl, game, currentPlayerId]);
   
   /**
    * Load game data from API.
@@ -160,7 +171,28 @@ export default function GamePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center">Loading game...</p>
+            <p className="text-center text-gray-900">Loading game...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state - Game not found
+  if (error === 'Game not found' || (!isLoading && !game)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Game Not Found</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-gray-700">
+              This game doesn't exist or has been reset. Games are stored in memory and are lost when the server restarts.
+            </p>
+            <Button onClick={() => window.location.href = '/'} className="w-full">
+              Back to Home
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -173,13 +205,13 @@ export default function GamePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Join Game</CardTitle>
+            <CardTitle>Deelnemen aan Spel</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Your Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Je Naam</label>
               <Input
-                placeholder="Enter your name"
+                placeholder="Voer je naam in..."
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleJoinGame()}
@@ -187,7 +219,7 @@ export default function GamePage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">Choose Token</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kies Token</label>
               <div className="grid grid-cols-4 gap-2">
                 {PLAYER_TOKENS.map((token) => (
                   <button
@@ -209,8 +241,8 @@ export default function GamePage() {
               <p className="text-sm text-red-600">{error}</p>
             )}
             
-            <Button onClick={handleJoinGame} disabled={isLoading} className="w-full">
-              {isLoading ? 'Joining...' : 'Join Game'}
+            <Button onClick={handleJoinGame} disabled={isLoading || !playerName.trim()} className="w-full">
+              {isLoading ? 'Deelnemen...' : 'Deelnemen aan Spel'}
             </Button>
           </CardContent>
         </Card>
@@ -258,33 +290,41 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {game?.players.map((player, idx) => {
-                  const token = PLAYER_TOKENS.find(t => t.value === player.token);
-                  const isCurrent = idx === game.currentPlayerIndex;
-                  const isMe = player.id === currentPlayerId;
-                  
-                  return (
-                    <div
-                      key={player.id}
-                      className={`p-3 rounded-lg border-2 transition-smooth ${
-                        isCurrent
-                          ? 'border-primary bg-primary/10'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{token?.emoji}</span>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold">{player.name}</p>
-                            {isMe && <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">You</span>}
+                {game?.players.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">No players yet</p>
+                    <p className="text-xs mt-1">Waiting for players to join...</p>
+                  </div>
+                ) : (
+                  game?.players.map((player, idx) => {
+                    const token = PLAYER_TOKENS.find(t => t.value === player.token);
+                    const isCurrent = idx === game.currentPlayerIndex;
+                    const isMe = player.id === currentPlayerId;
+                    
+                    return (
+                      <div
+                        key={player.id}
+                        className={`p-3 rounded-lg border-2 transition-smooth ${
+                          isCurrent
+                            ? 'border-primary bg-primary/10'
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{token?.emoji}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-gray-900">{player.name}</p>
+                              {isMe && <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">You</span>}
+                            </div>
+                            <p className="text-sm text-gray-600">{formatCurrency(player.balance)}</p>
                           </div>
-                          <p className="text-sm text-gray-600">{formatCurrency(player.balance)}</p>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
             
@@ -297,7 +337,7 @@ export default function GamePage() {
                 <CardContent className="space-y-4">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">Current Player</p>
-                    <p className="text-lg font-bold">{currentPlayer?.name}</p>
+                    <p className="text-lg font-bold text-gray-900">{currentPlayer?.name}</p>
                   </div>
                   
                   <Button
@@ -314,6 +354,23 @@ export default function GamePage() {
               </Card>
             )}
             
+            {/* Join Game Button */}
+            {game?.status === 'waiting' && !currentPlayerId && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Deelnemen</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Het spel wacht op spelers. Doe nu mee!
+                  </p>
+                  <Button onClick={() => setShowJoinDialog(true)} className="w-full">
+                    Deelnemen aan Spel
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            
             {/* Game Info */}
             <Card>
               <CardHeader>
@@ -325,15 +382,15 @@ export default function GamePage() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Bank:</span>
-                  <span className="font-semibold">{formatCurrency(game?.bank.balance || 0)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(game?.bank.balance || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Side Pot:</span>
-                  <span className="font-semibold">{formatCurrency(game?.sidePot.balance || 0)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(game?.sidePot.balance || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Status:</span>
-                  <span className="font-semibold capitalize">{game?.status}</span>
+                  <span className="font-semibold capitalize text-gray-900">{game?.status}</span>
                 </div>
               </CardContent>
             </Card>
