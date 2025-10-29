@@ -81,11 +81,12 @@ export default function GamePage() {
   }, [nameFromUrl, game, currentPlayerId]);
   
   /**
-   * Load game data from API.
+   * Load game data from API with retry logic.
    */
-  const loadGame = async () => {
+  const loadGame = async (retryCount = 3) => {
     setLoading(true);
     setError(null);
+    let shouldRetry = false;
     
     try {
       const response = await getGame(gameId);
@@ -99,19 +100,42 @@ export default function GamePage() {
         }
       } else {
         const errorMsg = response.error || 'Kon spel niet laden';
-        setError(errorMsg);
         
-        // Only show toast for non-404 errors (404 is handled in UI)
-        if (!errorMsg.includes('niet gevonden')) {
-          toast.error(errorMsg);
+        // If game not found and we have retries left, try again after a short delay
+        // This handles the case where a game was just created
+        if ((errorMsg.includes('niet gevonden') || errorMsg.includes('not found')) && retryCount > 0) {
+          shouldRetry = true;
+          console.log(`Game not found, retrying... (${retryCount} attempts left)`);
+          setTimeout(() => {
+            loadGame(retryCount - 1);
+          }, 500); // Wait 500ms before retry
+          return;
         }
+        
+        setError(errorMsg);
+        setLoading(false);
       }
     } catch (err) {
       const errorMsg = 'Netwerk fout bij laden spel';
+      
+      // Retry on network errors
+      if (retryCount > 0) {
+        shouldRetry = true;
+        console.log(`Network error, retrying... (${retryCount} attempts left)`);
+        setTimeout(() => {
+          loadGame(retryCount - 1);
+        }, 1000);
+        return;
+      }
+      
       setError(errorMsg);
       toast.error(errorMsg);
-    } finally {
       setLoading(false);
+    } finally {
+      // Only set loading to false if we're not retrying
+      if (!shouldRetry && retryCount === 0) {
+        setLoading(false);
+      }
     }
   };
   
@@ -180,6 +204,17 @@ export default function GamePage() {
    * Roll dice and execute turn.
    */
   const handleRollDice = async () => {
+    if (!isMyTurn) {
+      toast.warning('Het is niet jouw beurt');
+      return;
+    }
+    
+    // Rate limiting for dice rolls
+    if (!rateLimiter.isAllowed(`roll-dice-${gameId}`, 10, 10000)) {
+      toast.error('Te snel! Wacht even.');
+      return;
+    }
+    
     setIsRolling(true);
     setError(null);
     
@@ -190,16 +225,26 @@ export default function GamePage() {
         setLastTurnResult(response.data);
         setGame(response.data.gameState);
         
+        // Show dice roll result
+        const dice = response.data.dice;
+        if (dice) {
+          toast.info(`🎲 Gegooid: ${dice[0]} + ${dice[1]} = ${dice[0] + dice[1]}`);
+        }
+        
         // Reset rolling after animation
         setTimeout(() => {
           setIsRolling(false);
         }, 600);
       } else {
-        setError(response.error || 'Failed to roll dice');
+        const errorMsg = response.error || 'Kon niet gooien';
+        setError(errorMsg);
+        toast.error(errorMsg);
         setIsRolling(false);
       }
     } catch (err) {
-      setError('Network error');
+      const errorMsg = 'Netwerk fout bij gooien';
+      setError(errorMsg);
+      toast.error(errorMsg);
       setIsRolling(false);
     }
   };
@@ -218,19 +263,19 @@ export default function GamePage() {
   }
 
   // Error state - Game not found
-  if (error === 'Game not found' || (!isLoading && !game)) {
+  if (error === 'Spel niet gevonden' || error === 'Game not found' || (!isLoading && !game)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-red-600">Game Not Found</CardTitle>
+            <CardTitle className="text-red-600">Spel Niet Gevonden</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-gray-700">
-              This game doesn't exist or has been reset. Games are stored in memory and are lost when the server restarts.
+            <p className="text-gray-900 leading-relaxed">
+              Dit spel bestaat niet of is verloren gegaan. Spellen worden in het geheugen opgeslagen en gaan verloren wanneer de server herstart.
             </p>
             <Button onClick={() => window.location.href = '/'} className="w-full">
-              Back to Home
+              Terug naar Home
             </Button>
           </CardContent>
         </Card>
