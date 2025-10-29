@@ -243,6 +243,14 @@ class Game
     }
 
     /**
+     * Check if the game has finished.
+     */
+    public function isFinished(): bool
+    {
+        return $this->status === GameStatus::FINISHED;
+    }
+
+    /**
      * Check if more players can be added.
      */
     public function canAddPlayer(): bool
