@@ -47,7 +47,9 @@ class WebSocketBroadcaster
             'timestamp' => time(),
         ]);
 
+        // Use both Pub/Sub and Queue for reliability
         $this->redis->publish(self::CHANNEL, $message);
+        $this->redis->lpush('game_events_queue', [$message]);
     }
 
     /**
@@ -65,7 +67,9 @@ class WebSocketBroadcaster
             'timestamp' => time(),
         ]);
 
+        // Use both Pub/Sub and Queue for reliability
         $this->redis->publish(self::CHANNEL, $message);
+        $this->redis->lpush('game_events_queue', [$message]);
     }
 }
 

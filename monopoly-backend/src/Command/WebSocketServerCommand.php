@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use React\EventLoop\Loop;
+use Clue\React\Redis\Factory;
 
 /**
  * WebSocket Server Command
@@ -49,37 +50,28 @@ class WebSocketServerCommand extends Command
             // Create the WebSocket server instance
             $gameServer = new GameWebSocketServer();
             
-            // Create the Ratchet WebSocket server
-            $server = IoServer::factory(
+            // Get React Event Loop
+            $loop = Loop::get();
+            
+            // Create the Ratchet WebSocket server with custom loop
+            $socket = new \React\Socket\SocketServer("$host:$port", [], $loop);
+            $wsServer = new \Ratchet\Server\IoServer(
                 new HttpServer(
                     new WsServer($gameServer)
                 ),
-                $port,
-                $host
+                $socket,
+                $loop
             );
 
             $io->success("WebSocket server running on ws://{$host}:{$port}");
             
-            // Start Redis subscriber in a background process
-            $pid = pcntl_fork();
+            // Start Redis subscriber using React periodic timer
+            $this->startRedisSubscriber($gameServer, $redisHost, $redisPort, $io, $loop);
             
-            if ($pid == -1) {
-                throw new \RuntimeException('Could not fork Redis subscriber process');
-            } elseif ($pid == 0) {
-                // Child process: Redis subscriber
-                $this->startRedisSubscriber($gameServer, $redisHost, $redisPort, $io);
-                exit(0);
-            } else {
-                // Parent process: WebSocket server
-                $io->comment('Redis subscriber started in background');
-                $io->comment('Press Ctrl+C to stop the server');
-                
-                // Run the server (blocks until stopped)
-                $server->run();
-                
-                // Clean up child process
-                pcntl_wait($status);
-            }
+            $io->comment('Press Ctrl+C to stop the server');
+            
+            // Run the event loop (blocks until stopped)
+            $loop->run();
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
@@ -90,30 +82,38 @@ class WebSocketServerCommand extends Command
     
     /**
      * Start Redis subscriber to listen for game events.
+     * Uses a queue-based approach with periodic polling.
      */
     private function startRedisSubscriber(
         GameWebSocketServer $gameServer,
         string $redisHost,
         int $redisPort,
-        SymfonyStyle $io
+        SymfonyStyle $io,
+        $loop
     ): void {
         try {
+            // Use a queue in Redis as a simpler alternative to Pub/Sub
             $redis = new Client([
                 'scheme' => 'tcp',
                 'host' => $redisHost,
                 'port' => $redisPort,
             ]);
             
-            $io->info('Redis subscriber connected, listening for events...');
+            $io->info('Redis subscriber connected, polling for events...');
             
-            // Subscribe to game_events channel
-            $pubsub = $redis->pubSubLoop();
-            $pubsub->subscribe('game_events');
-            
-            foreach ($pubsub as $message) {
-                if ($message->kind === 'message') {
-                    try {
-                        $data = json_decode($message->payload, true);
+            // Poll Redis list every 100ms for new events
+            $loop->addPeriodicTimer(0.1, function () use ($redis, $gameServer) {
+                try {
+                    // Use RPOP to get events from queue (non-blocking)
+                    // Process up to 10 events per tick
+                    for ($i = 0; $i < 10; $i++) {
+                        $message = $redis->rpop('game_events_queue');
+                        
+                        if (!$message) {
+                            break; // No more messages
+                        }
+                        
+                        $data = json_decode($message, true);
                         
                         if ($data && isset($data['type'])) {
                             if ($data['type'] === 'game_event' && isset($data['gameId'], $data['event'], $data['data'])) {
@@ -131,11 +131,12 @@ class WebSocketServerCommand extends Command
                                 );
                             }
                         }
-                    } catch (\Exception $e) {
-                        echo "[Redis] Error processing message: {$e->getMessage()}\n";
                     }
+                } catch (\Exception $e) {
+                    echo "[Redis] Error: {$e->getMessage()}\n";
                 }
-            }
+            });
+            
         } catch (\Exception $e) {
             $io->error('Redis subscriber error: ' . $e->getMessage());
         }
