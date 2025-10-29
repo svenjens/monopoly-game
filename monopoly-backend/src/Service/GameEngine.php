@@ -85,8 +85,13 @@ class GameEngine
         $tile = $game->getBoard()->getTile($player->getPosition());
         $tileInteraction = $this->handleTileLanding($game, $player, $tile);
 
-        // Step 5: Advance to next player
-        $game->nextTurn();
+        // Step 5: Check for bankruptcy
+        $bankruptcyResult = $this->checkBankruptcy($game, $player);
+        
+        // Step 6: Advance to next player (if game not finished)
+        if (!$bankruptcyResult['isBankrupt']) {
+            $game->nextTurn();
+        }
 
         // Return complete turn result
         return [
@@ -95,14 +100,17 @@ class GameEngine
                 'name' => $player->getName(),
                 'balance' => $player->getBalance(),
                 'position' => $player->getPosition(),
+                'isActive' => $player->isActive(),
             ],
             'dice' => $diceResult,
             'movement' => $movementResult,
             'tileInteraction' => $tileInteraction,
+            'bankruptcy' => $bankruptcyResult,
             'nextPlayer' => [
                 'id' => $game->getCurrentPlayer()->getId(),
                 'name' => $game->getCurrentPlayer()->getName(),
             ],
+            'gameFinished' => $game->isFinished(),
         ];
     }
 
@@ -184,6 +192,62 @@ class GameEngine
     {
         $player->addBalance(self::GO_PASS_BONUS);
         $bank->deductBalance(self::GO_PASS_BONUS);
+    }
+
+    /**
+     * Check if a player is bankrupt and handle game ending.
+     * A player is bankrupt if their balance is negative.
+     * 
+     * @param Game $game The current game instance
+     * @param Player $player The player to check
+     * @return array Bankruptcy result
+     */
+    private function checkBankruptcy(Game $game, Player $player): array
+    {
+        $isBankrupt = $player->getBalance() < 0;
+        
+        if ($isBankrupt) {
+            // Mark player as inactive
+            $player->setActive(false);
+            
+            // End the game
+            $game->finish();
+            
+            // Find winner (player with highest balance)
+            $activePlayers = array_filter($game->getPlayers(), fn($p) => $p->isActive());
+            $winner = null;
+            $highestBalance = PHP_INT_MIN;
+            
+            foreach ($activePlayers as $activePlayer) {
+                if ($activePlayer->getBalance() > $highestBalance) {
+                    $highestBalance = $activePlayer->getBalance();
+                    $winner = $activePlayer;
+                }
+            }
+            
+            return [
+                'isBankrupt' => true,
+                'bankruptPlayer' => [
+                    'id' => $player->getId(),
+                    'name' => $player->getName(),
+                    'balance' => $player->getBalance(),
+                ],
+                'winner' => $winner ? [
+                    'id' => $winner->getId(),
+                    'name' => $winner->getName(),
+                    'balance' => $winner->getBalance(),
+                ] : null,
+                'message' => sprintf(
+                    '%s is failliet! Het spel is afgelopen. %s heeft gewonnen!',
+                    $player->getName(),
+                    $winner ? $winner->getName() : 'Niemand'
+                ),
+            ];
+        }
+        
+        return [
+            'isBankrupt' => false,
+        ];
     }
 }
 
