@@ -185,6 +185,20 @@ export async function joinGame(
 }
 
 /**
+ * Start a game (change status from waiting to in_progress).
+ * 
+ * POST /api/games/{id}/start
+ * 
+ * @param gameId - Game identifier
+ * @returns Updated game state
+ */
+export async function startGame(gameId: string): Promise<ApiResponse<Game>> {
+  return apiFetch<Game>(`/api/games/${gameId}/start`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Execute a turn (roll dice and move).
  * 
  * POST /api/games/{id}/roll

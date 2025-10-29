@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getGame, joinGame, rollDice } from '@/lib/api';
+import { getGame, joinGame, rollDice, startGame } from '@/lib/api';
 import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '@/lib/validation';
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -204,6 +204,33 @@ export default function GamePage() {
   };
   
   /**
+   * Start the game (first player only).
+   */
+  const handleStartGame = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await startGame(gameId);
+      
+      if (response.success && response.data) {
+        setGame(response.data);
+        toast.success('Spel gestart! 🎮');
+      } else {
+        const errorMsg = response.error || 'Kon spel niet starten';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      const errorMsg = 'Netwerk fout bij starten spel';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  /**
    * Roll dice and execute turn.
    */
   const handleRollDice = async () => {
@@ -292,7 +319,7 @@ export default function GamePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Deelnemen aan Spel</CardTitle>
+            <CardTitle className="text-gray-900">Deelnemen aan Spel</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -306,7 +333,7 @@ export default function GamePage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Kies Token</label>
+              <label className="block text-sm font-medium text-gray-900 mb-2">Kies Token</label>
               <div className="grid grid-cols-4 gap-2">
                 {PLAYER_TOKENS.map((token) => (
                   <button
@@ -314,8 +341,8 @@ export default function GamePage() {
                     onClick={() => setSelectedToken(token.value)}
                     className={`p-3 rounded-lg border-2 text-2xl transition-smooth ${
                       selectedToken === token.value
-                        ? 'border-primary bg-primary/10'
-                        : 'border-gray-200 hover:border-primary/50'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50'
                     }`}
                   >
                     {token.emoji}
@@ -371,7 +398,7 @@ export default function GamePage() {
             {/* Players List */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-900">
                   <Users className="w-5 h-5" />
                   Players ({game?.players.length || 0}/4)
                 </CardTitle>
@@ -419,7 +446,7 @@ export default function GamePage() {
             {game?.status === 'in_progress' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Your Turn</CardTitle>
+                  <CardTitle className="text-gray-900">Your Turn</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
@@ -445,7 +472,7 @@ export default function GamePage() {
             {game?.status === 'waiting' && !currentPlayerId && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Deelnemen</CardTitle>
+                  <CardTitle className="text-gray-900">Deelnemen</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600 mb-4">
@@ -461,26 +488,47 @@ export default function GamePage() {
             {/* Game Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-900">
                   <DollarSign className="w-5 h-5" />
                   Game Info
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Bank:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(game?.bank.balance || 0)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Bank:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(game?.bank.balance || 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Side Pot:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(game?.sidePot.balance || 0)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Side Pot:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(game?.sidePot.balance || 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
-                  <span className="font-semibold capitalize text-gray-900">{game?.status}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Status:</span>
+                  <span className="font-bold capitalize text-gray-900">{game?.status}</span>
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Start Game Button (voor first player) */}
+            {game?.status === 'waiting' && game?.players.length >= 2 && currentPlayerId === game?.players[0]?.id && (
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-green-900">Klaar om te Starten</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-green-800 mb-4">
+                    Er zijn {game.players.length} spelers. Je kunt het spel nu starten!
+                  </p>
+                  <Button 
+                    onClick={handleStartGame}
+                    disabled={isLoading}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isLoading ? 'Starten...' : 'Start Spel'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
           
           {/* Main Area - Board */}
