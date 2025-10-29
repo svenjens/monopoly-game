@@ -76,7 +76,7 @@ class UtilityTile extends Tile
                     'action' => 'utility_purchased',
                     'amount' => self::PRICE,
                     'property' => $this->name,
-                    'message' => sprintf('%s purchased %s for %d', $player->getName(), $this->name, self::PRICE),
+                    'message' => sprintf('%s kocht %s voor €%s', $player->getName(), $this->name, number_format(self::PRICE, 0, ',', '.')),
                 ];
             }
 
@@ -105,8 +105,8 @@ class UtilityTile extends Tile
                 'property' => $this->name,
                 'diceRoll' => $diceRoll,
                 'utilityCount' => $utilityCount,
-                'message' => sprintf('%s paid %d rent to %s for %s (rolled %d, %d utilities)', 
-                    $player->getName(), $rent, $this->owner->getName(), $this->name, $diceRoll, $utilityCount),
+                'message' => sprintf('%s betaalde €%s huur aan %s voor %s (worp %d, %d nutsbedrijven)', 
+                    $player->getName(), number_format($rent, 0, ',', '.'), $this->owner->getName(), $this->name, $diceRoll, $utilityCount),
             ];
         }
 
@@ -114,7 +114,7 @@ class UtilityTile extends Tile
         return [
             'action' => 'own_property',
             'amount' => 0,
-            'message' => sprintf('%s landed on their own utility (%s)', $player->getName(), $this->name),
+            'message' => sprintf('%s kwam op eigen nutsbedrijf (%s)', $player->getName(), $this->name),
         ];
     }
 

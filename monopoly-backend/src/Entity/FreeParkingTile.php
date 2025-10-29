@@ -46,8 +46,8 @@ class FreeParkingTile extends Tile
             return [
                 'action' => 'free_parking_collected',
                 'amount' => $amount,
-                'message' => sprintf('%s landed on Free Parking and collected %d from the pot!', 
-                    $player->getName(), $amount),
+                'message' => sprintf('%s kwam op Vrij Parkeren en ontving €%s uit de pot!', 
+                    $player->getName(), number_format($amount, 0, ',', '.')),
             ];
         }
 
@@ -55,7 +55,7 @@ class FreeParkingTile extends Tile
         return [
             'action' => 'free_parking_empty',
             'amount' => 0,
-            'message' => sprintf('%s landed on Free Parking, but the pot is empty', $player->getName()),
+            'message' => sprintf('%s kwam op Vrij Parkeren, maar de pot is leeg', $player->getName()),
         ];
     }
 }

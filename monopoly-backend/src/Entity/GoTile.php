@@ -54,7 +54,7 @@ class GoTile extends Tile
         return [
             'action' => 'go_land',
             'amount' => self::LAND_AMOUNT,
-            'message' => sprintf('%s landed on Go and collected %d!', $player->getName(), self::LAND_AMOUNT),
+            'message' => sprintf('%s kwam op Start en ontving €%s!', $player->getName(), number_format(self::LAND_AMOUNT, 0, ',', '.')),
         ];
     }
 

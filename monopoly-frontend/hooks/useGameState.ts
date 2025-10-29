@@ -182,8 +182,12 @@ export const useGameState = create<GameState>((set, get) => ({
  * Computed selectors for derived state.
  */
 export const useIsMyTurn = () => {
+  // CRITICAL: Subscribe to BOTH dependencies to trigger re-render on changes!
   const game = useGameState((state) => state.game);
   const currentPlayerId = useGameState((state) => state.currentPlayerId);
+  
+  // Also watch currentPlayerIndex directly to ensure re-render
+  const currentPlayerIndex = useGameState((state) => state.game?.currentPlayerIndex);
   
   if (!game || !currentPlayerId) {
     console.log('❌ useIsMyTurn: Missing data', { game: !!game, currentPlayerId });

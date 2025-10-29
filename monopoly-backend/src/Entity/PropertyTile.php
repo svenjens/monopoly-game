@@ -81,7 +81,7 @@ class PropertyTile extends Tile
                     'action' => 'property_purchased',
                     'amount' => $this->price,
                     'property' => $this->name,
-                    'message' => sprintf('%s purchased %s for %d', $player->getName(), $this->name, $this->price),
+                    'message' => sprintf('%s kocht %s voor €%s', $player->getName(), $this->name, number_format($this->price, 0, ',', '.')),
                 ];
             }
 
@@ -103,7 +103,7 @@ class PropertyTile extends Tile
                 'amount' => $this->rent,
                 'beneficiary' => $this->owner->getName(),
                 'property' => $this->name,
-                'message' => sprintf('%s paid %d rent to %s for %s', $player->getName(), $this->rent, $this->owner->getName(), $this->name),
+                'message' => sprintf('%s betaalde €%s huur aan %s voor %s', $player->getName(), number_format($this->rent, 0, ',', '.'), $this->owner->getName(), $this->name),
             ];
         }
 
@@ -111,7 +111,7 @@ class PropertyTile extends Tile
         return [
             'action' => 'own_property',
             'amount' => 0,
-            'message' => sprintf('%s landed on their own property (%s)', $player->getName(), $this->name),
+            'message' => sprintf('%s kwam op eigen terrein (%s)', $player->getName(), $this->name),
         ];
     }
 

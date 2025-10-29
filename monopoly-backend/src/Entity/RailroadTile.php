@@ -70,7 +70,7 @@ class RailroadTile extends Tile
                     'action' => 'railroad_purchased',
                     'amount' => self::BASE_PRICE,
                     'property' => $this->name,
-                    'message' => sprintf('%s purchased %s for %d', $player->getName(), $this->name, self::BASE_PRICE),
+                    'message' => sprintf('%s kocht %s voor €%s', $player->getName(), $this->name, number_format(self::BASE_PRICE, 0, ',', '.')),
                 ];
             }
 
@@ -96,8 +96,8 @@ class RailroadTile extends Tile
                 'beneficiary' => $this->owner->getName(),
                 'property' => $this->name,
                 'railroadCount' => $railroadCount,
-                'message' => sprintf('%s paid %d rent to %s for %s (%d railroads)', 
-                    $player->getName(), $rent, $this->owner->getName(), $this->name, $railroadCount),
+                'message' => sprintf('%s betaalde €%s huur aan %s voor %s (%d stations)', 
+                    $player->getName(), number_format($rent, 0, ',', '.'), $this->owner->getName(), $this->name, $railroadCount),
             ];
         }
 
@@ -105,7 +105,7 @@ class RailroadTile extends Tile
         return [
             'action' => 'own_property',
             'amount' => 0,
-            'message' => sprintf('%s landed on their own railroad (%s)', $player->getName(), $this->name),
+            'message' => sprintf('%s kwam op eigen station (%s)', $player->getName(), $this->name),
         ];
     }
 
