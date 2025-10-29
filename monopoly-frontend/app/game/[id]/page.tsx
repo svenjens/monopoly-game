@@ -129,6 +129,14 @@ export default function GamePage() {
     playerName?: string;
   }>>([]);
   
+  // Property purchase dialog
+  const [propertyOffer, setPropertyOffer] = useState<{
+    propertyName: string;
+    price: number;
+    canAfford: boolean;
+  } | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  
   // WebSocket
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
   
@@ -582,7 +590,20 @@ export default function GamePage() {
         // Tile interaction
         if (turnResult.tileInteraction) {
           const tile = turnResult.tileInteraction;
-          if (tile.action === 'property_purchased') {
+          if (tile.action === 'property_available') {
+            // Show property purchase dialog
+            setPropertyOffer({
+              propertyName: tile.propertyName,
+              price: tile.price,
+              canAfford: tile.canAfford,
+            });
+            addToGameLog(
+              'property_available',
+              tile.message,
+              player.id,
+              player.name
+            );
+          } else if (tile.action === 'property_purchased') {
             addToGameLog(
               'purchase',
               `🏠 ${player.name} kocht ${tile.propertyName} voor €${tile.price}`,
@@ -642,6 +663,88 @@ export default function GamePage() {
       setError(errorMsg);
       toast.error(errorMsg);
       setIsRolling(false);
+    }
+  };
+  
+  /**
+   * Purchase property.
+   */
+  const handlePurchaseProperty = async () => {
+    if (!propertyOffer || isPurchasing) return;
+    
+    setIsPurchasing(true);
+    try {
+      const response = await apiClient.post<any>(`/games/${gameId}/purchase`, {});
+      
+      if (response.success && response.data) {
+        toast.success(`✅ ${propertyOffer.propertyName} gekocht!`);
+        
+        // Log purchase
+        addToGameLog(
+          'purchase',
+          `🏠 Je kocht ${propertyOffer.propertyName} voor €${propertyOffer.price}`,
+          response.data.purchase?.player?.id,
+          response.data.purchase?.player?.name
+        );
+        
+        // Close dialog
+        setPropertyOffer(null);
+        
+        // Update game state
+        if (response.data.gameState) {
+          setGame(response.data.gameState);
+        }
+      } else {
+        toast.error(response.error || 'Kon property niet kopen');
+      }
+    } catch (err) {
+      toast.error('Netwerk fout bij kopen');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+  
+  /**
+   * Decline property purchase.
+   */
+  const handleDeclineProperty = () => {
+    if (propertyOffer) {
+      toast.info(`❌ ${propertyOffer.propertyName} niet gekocht`);
+      addToGameLog(
+        'declined',
+        `⛔ Je koos ${propertyOffer.propertyName} niet te kopen`,
+      );
+    }
+    setPropertyOffer(null);
+  };
+  
+  /**
+   * Pay €50 to get out of jail.
+   */
+  const handlePayJailFee = async () => {
+    if (!gameId || !currentPlayer) return;
+    
+    try {
+      const response = await apiClient.post<any>(`/games/${gameId}/pay-jail`, {});
+      
+      if (response.success && response.data) {
+        toast.success('🔓 Vrijgekocht uit gevangenis voor €50!');
+        
+        // Log jail payment
+        addToGameLog(
+          'jail',
+          '🔓 Je betaalde €50 om uit de gevangenis te komen',
+        );
+        
+        // Update game state
+        if (response.data.gameState) {
+          setGame(response.data.gameState);
+        }
+      } else {
+        toast.error(response.error || 'Kon niet betalen');
+      }
+    } catch (err) {
+      toast.error('Netwerk fout bij betalen');
     }
   };
   
@@ -823,6 +926,49 @@ export default function GamePage() {
               </CardContent>
             </Card>
             
+            {/* Mijn Bezittingen */}
+            {currentPlayer && currentPlayer.properties && currentPlayer.properties.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-gray-900">🏠 Mijn Bezittingen ({currentPlayer.properties.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {currentPlayer.properties.map((property: any) => {
+                      // Determine property color or type
+                      const propertyColor = property.color || 'gray';
+                      const colorClass = {
+                        'brown': 'bg-amber-800 text-white',
+                        'light_blue': 'bg-sky-400 text-gray-900',
+                        'pink': 'bg-pink-500 text-white',
+                        'orange': 'bg-orange-500 text-white',
+                        'red': 'bg-red-600 text-white',
+                        'yellow': 'bg-yellow-400 text-gray-900',
+                        'green': 'bg-green-600 text-white',
+                        'dark_blue': 'bg-blue-900 text-white',
+                        'railroad': 'bg-gray-800 text-white',
+                        'utility': 'bg-gray-600 text-white',
+                      }[propertyColor] || 'bg-gray-500 text-white';
+                      
+                      return (
+                        <div
+                          key={property.position}
+                          className={`p-2 rounded text-xs font-medium ${colorClass}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{property.name}</span>
+                            {property.type === 'property' && property.rent && (
+                              <span className="text-xs opacity-80">€{property.rent}/beurt</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {/* Dobbelsteen Gooien */}
             {game?.status === 'in_progress' && (
               <Card>
@@ -835,9 +981,64 @@ export default function GamePage() {
                     <p className="text-lg font-bold text-gray-900">{currentPlayer?.name}</p>
                   </div>
                   
+                  {/* Property Purchase Dialog */}
+                  {propertyOffer && isMyTurn && (
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-500 rounded-lg p-4">
+                      <h3 className="font-bold text-lg text-gray-900 mb-2">🏠 Property Beschikbaar!</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-700">Property:</p>
+                          <p className="font-semibold text-gray-900">{propertyOffer.propertyName}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-700">Prijs:</p>
+                          <p className="font-semibold text-gray-900">€{propertyOffer.price}</p>
+                        </div>
+                        {!propertyOffer.canAfford && (
+                          <p className="text-sm text-red-600 font-medium">⚠️ Niet genoeg geld!</p>
+                        )}
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={handlePurchaseProperty}
+                            disabled={!propertyOffer.canAfford || isPurchasing}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            {isPurchasing ? 'Kopen...' : '✓ Kopen'}
+                          </Button>
+                          <Button
+                            onClick={handleDeclineProperty}
+                            disabled={isPurchasing}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            ✗ Nee
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Jail Payment Option */}
+                  {currentPlayer?.inJail && isMyTurn && !propertyOffer && (
+                    <div className="bg-orange-50 border-2 border-orange-500 rounded-lg p-4">
+                      <h3 className="font-bold text-gray-900 mb-2">🔒 In de Gevangenis</h3>
+                      <p className="text-sm text-gray-700 mb-3">
+                        Beurt {currentPlayer.jailTurns}/3 - Betaal €50 om nu vrij te komen
+                      </p>
+                      <Button
+                        onClick={handlePayJailFee}
+                        disabled={currentPlayer.balance < 50}
+                        className="w-full bg-orange-600 hover:bg-orange-700"
+                        size="sm"
+                      >
+                        {currentPlayer.balance < 50 ? '⚠️ Niet genoeg geld' : '💰 Betaal €50'}
+                      </Button>
+                    </div>
+                  )}
+                  
                   <Button
                     onClick={handleRollDice}
-                    disabled={!isMyTurn || isRolling}
+                    disabled={!isMyTurn || isRolling || !!propertyOffer}
                     className="w-full"
                     size="lg"
                   >
