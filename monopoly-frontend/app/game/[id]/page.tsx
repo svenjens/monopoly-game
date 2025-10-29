@@ -22,7 +22,7 @@ import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import type { PlayerToken } from '@/lib/types';
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy } from 'lucide-react';
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy, Copy, Check, Share2 } from 'lucide-react';
 
 // Dynamic import for Confetti (client-side only)
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
@@ -117,6 +117,7 @@ export default function GamePage() {
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [playerName, setPlayerName] = useState(nameFromUrl);
   const [selectedToken, setSelectedToken] = useState<PlayerToken>('car');
+  const [copied, setCopied] = useState(false);
   
   // WebSocket
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
@@ -462,6 +463,26 @@ export default function GamePage() {
   };
   
   /**
+   * Copy game link to clipboard for inviting friends.
+   */
+  const handleCopyGameLink = async () => {
+    try {
+      // Get current player name for auto-join
+      const currentPlayerName = myPlayer?.name || '';
+      const gameUrl = `${window.location.origin}/game/${gameId}${currentPlayerName ? `?name=${encodeURIComponent(currentPlayerName)}` : ''}`;
+      
+      await navigator.clipboard.writeText(gameUrl);
+      setCopied(true);
+      toast.success('Link gekopieerd! 📋');
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Kon link niet kopiëren');
+    }
+  };
+  
+  /**
    * Roll dice and execute turn.
    */
   const handleRollDice = async () => {
@@ -747,6 +768,54 @@ export default function GamePage() {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Invite Friends (alleen als speler in game zit) */}
+            {currentPlayerId && game?.status === 'waiting' && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-blue-900 flex items-center gap-2">
+                    <Share2 className="w-5 h-5" />
+                    Nodig Vrienden Uit
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-blue-800">
+                    Deel deze link om vrienden uit te nodigen:
+                  </p>
+                  
+                  {/* Game Code Display */}
+                  <div className="bg-white rounded-lg p-3 border border-blue-200">
+                    <p className="text-xs text-gray-600 mb-1">Game ID</p>
+                    <p className="font-mono font-bold text-gray-900 text-sm break-all">
+                      {gameId}
+                    </p>
+                  </div>
+                  
+                  {/* Copy Button */}
+                  <Button
+                    onClick={handleCopyGameLink}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={copied}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Gekopieerd!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        Kopieer Uitnodigingslink
+                      </>
+                    )}
+                  </Button>
+                  
+                  <p className="text-xs text-blue-700 text-center">
+                    {game.players.length}/4 spelers • Wachten op meer spelers...
+                  </p>
+                </CardContent>
+              </Card>
+            )}
             
             {/* Start Game Button (voor first player) */}
             {game?.status === 'waiting' && game?.players.length >= 2 && currentPlayerId === game?.players[0]?.id && (
