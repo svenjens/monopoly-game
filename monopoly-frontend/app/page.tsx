@@ -20,7 +20,6 @@ import { Gamepad2, Plus, LogIn } from 'lucide-react';
 export default function Home() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creatorName, setCreatorName] = useState('');
   const [joinGameId, setJoinGameId] = useState('');
   const [error, setError] = useState<string | null>(null);

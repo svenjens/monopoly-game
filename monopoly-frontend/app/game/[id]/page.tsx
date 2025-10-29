@@ -596,6 +596,8 @@ export default function GamePage() {
         // Tile interaction
         if (turnResult.tileInteraction) {
           const tile = turnResult.tileInteraction;
+          
+          // Property actions
           if (tile.action === 'property_available') {
             // Show property purchase dialog
             setPropertyOffer({
@@ -624,7 +626,87 @@ export default function GamePage() {
               player.id,
               player.name
             );
-          } else if (tile.message) {
+          }
+          
+          // Chance card actions
+          else if (tile.action === 'card_collect') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description} (+€${tile.amount})`,
+              player.id,
+              player.name
+            );
+            toast.success(`🎴 ${tile.description}`);
+          } else if (tile.action === 'card_pay') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description} (-€${tile.amount})`,
+              player.id,
+              player.name
+            );
+            toast.info(`🎴 ${tile.description}`);
+          } else if (tile.action === 'card_pay_to_pot') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description} (-€${tile.amount} naar pot)`,
+              player.id,
+              player.name
+            );
+            toast.info(`🎴 ${tile.description}`);
+          } else if (tile.action === 'card_move') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description} (${tile.spaces > 0 ? '+' : ''}${tile.spaces} vakjes)`,
+              player.id,
+              player.name
+            );
+            toast.info(`🎴 ${tile.description}`);
+          } else if (tile.action === 'card_move_to') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description}${tile.passedGo ? ' (passeerde Start!)' : ''}`,
+              player.id,
+              player.name
+            );
+            toast.info(`🎴 ${tile.description}`);
+          } else if (tile.action === 'card_go_to_jail') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description}`,
+              player.id,
+              player.name
+            );
+            toast.error(`🎴 ${tile.description}`);
+          } else if (tile.action === 'card_jail_free') {
+            addToGameLog(
+              'card',
+              `🎴 ${player.name}: ${tile.description}`,
+              player.id,
+              player.name
+            );
+            toast.success(`🎴 ${tile.description}`);
+          }
+          
+          // Tax and other tile actions
+          else if (tile.action === 'tax_paid') {
+            addToGameLog(
+              'tax',
+              `💸 ${player.name} betaalde €${tile.amount} belasting`,
+              player.id,
+              player.name
+            );
+          } else if (tile.action === 'free_parking_collected') {
+            addToGameLog(
+              'bonus',
+              `🎉 ${player.name} ontving €${tile.amount} van Free Parking!`,
+              player.id,
+              player.name
+            );
+            toast.success(`🎉 Free Parking: +€${tile.amount}!`);
+          }
+          
+          // Generic fallback
+          else if (tile.message) {
             addToGameLog(
               'tile',
               tile.message,
@@ -1579,7 +1661,10 @@ export default function GamePage() {
                      entry.type === 'bankruptcy' ? 'bg-red-100 text-red-800' :
                      entry.type === 'purchase' ? 'bg-green-100 text-green-800' :
                      entry.type === 'build' ? 'bg-blue-100 text-blue-800' :
+                     entry.type === 'card' ? 'bg-purple-100 text-purple-800' :
                      entry.type === 'rent' ? 'bg-yellow-100 text-yellow-800' :
+                     entry.type === 'tax' ? 'bg-orange-100 text-orange-800' :
+                     entry.type === 'bonus' ? 'bg-emerald-100 text-emerald-800' :
                      entry.type === 'dice' ? 'bg-indigo-100 text-indigo-800' :
                      entry.type === 'jail' ? 'bg-orange-100 text-orange-800' :
                      'bg-gray-100 text-gray-800'
