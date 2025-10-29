@@ -19,12 +19,11 @@ class CommunityChestTile extends Tile
     /**
      * Player lands on Community Chest tile and draws a card.
      * 
-     * @param Player $player The player who landed
      * @param Game $game The current game
-     * @param int $diceRoll The dice roll that brought player here
+     * @param Player $player The player who landed
      * @return array Action result
      */
-    public function onLand(Player $player, Game $game, int $diceRoll): array
+    public function onLand(Game $game, Player $player): array
     {
         // Draw a community chest card from the game's community chest deck
         $card = $game->drawCommunityChestCard();
