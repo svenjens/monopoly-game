@@ -69,7 +69,15 @@ class GameStateDTO
                 $tileData['price'] = $tile->getPrice();
             }
             if (method_exists($tile, 'getRent')) {
-                $tileData['rent'] = $tile->getRent();
+                // For PropertyTile, getRent() has no parameters
+                // For RailroadTile and UtilityTile, we'll show base rent
+                if ($tile instanceof \App\Entity\PropertyTile) {
+                    $tileData['rent'] = $tile->getRent();
+                } elseif ($tile instanceof \App\Entity\RailroadTile) {
+                    $tileData['rent'] = $tile->getRent(1); // Base rent for 1 railroad
+                } elseif ($tile instanceof \App\Entity\UtilityTile) {
+                    $tileData['rent'] = $tile->getRent(7, 1); // Base rent: dice roll 7, 1 utility
+                }
             }
             if (method_exists($tile, 'getColor')) {
                 $tileData['color'] = $tile->getColor();

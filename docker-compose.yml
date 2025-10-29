@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - ./monopoly-backend:/app
+      - /app/vendor
     environment:
       - APP_ENV=dev
       - APP_SECRET=monopoly-secret-key-change-in-production
@@ -28,6 +29,7 @@ services:
       - "8080:8080"
     volumes:
       - ./monopoly-backend:/app
+      - /app/vendor
     environment:
       - APP_ENV=dev
       - APP_SECRET=monopoly-secret-key-change-in-production
