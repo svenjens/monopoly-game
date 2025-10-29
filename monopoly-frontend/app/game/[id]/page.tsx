@@ -119,6 +119,16 @@ export default function GamePage() {
   const [selectedToken, setSelectedToken] = useState<PlayerToken>('car');
   const [copied, setCopied] = useState(false);
   
+  // Game log
+  const [gameLog, setGameLog] = useState<Array<{
+    id: string;
+    timestamp: Date;
+    type: string;
+    message: string;
+    playerId?: string;
+    playerName?: string;
+  }>>([]);
+  
   // WebSocket
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
   
@@ -483,6 +493,23 @@ export default function GamePage() {
   };
   
   /**
+   * Add entry to game log.
+   */
+  const addToGameLog = (type: string, message: string, playerId?: string, playerName?: string) => {
+    setGameLog(prev => [
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        timestamp: new Date(),
+        type,
+        message,
+        playerId,
+        playerName,
+      },
+      ...prev,
+    ].slice(0, 50)); // Keep last 50 entries
+  };
+
+  /**
    * Roll dice and execute turn.
    */
   const handleRollDice = async () => {
@@ -506,6 +533,68 @@ export default function GamePage() {
       if (response.success && response.data) {
         setLastTurnResult(response.data);
         setGame(response.data.gameState);
+        
+        // Add to game log
+        const turnResult = response.data;
+        const player = turnResult.player;
+        
+        // Dice roll
+        if (turnResult.dice) {
+          addToGameLog(
+            'dice',
+            `🎲 ${player.name} gooide ${turnResult.dice[0]} + ${turnResult.dice[1]} = ${turnResult.dice[0] + turnResult.dice[1]}`,
+            player.id,
+            player.name
+          );
+        }
+        
+        // Movement
+        if (turnResult.movement) {
+          const movement = turnResult.movement;
+          addToGameLog(
+            'movement',
+            `👟 ${player.name} verplaatst van ${movement.oldPosition} → ${movement.newPosition}${movement.passedGo ? ' (passeerde Start! +€200)' : ''}`,
+            player.id,
+            player.name
+          );
+        }
+        
+        // Tile interaction
+        if (turnResult.tileInteraction) {
+          const tile = turnResult.tileInteraction;
+          if (tile.action === 'property_purchased') {
+            addToGameLog(
+              'purchase',
+              `🏠 ${player.name} kocht ${tile.propertyName} voor €${tile.price}`,
+              player.id,
+              player.name
+            );
+          } else if (tile.action === 'rent_paid') {
+            addToGameLog(
+              'rent',
+              `💰 ${player.name} betaalde €${tile.amount} huur aan ${tile.ownerName}`,
+              player.id,
+              player.name
+            );
+          } else if (tile.message) {
+            addToGameLog(
+              'tile',
+              tile.message,
+              player.id,
+              player.name
+            );
+          }
+        }
+        
+        // Bankruptcy
+        if (turnResult.bankruptcy?.isBankrupt) {
+          addToGameLog(
+            'bankruptcy',
+            `💔 ${turnResult.bankruptcy.message}`,
+            player.id,
+            player.name
+          );
+        }
         
         // Show dice roll result (defensive programming)
         const dice = response.data.dice;
@@ -1068,6 +1157,32 @@ export default function GamePage() {
                       <div className="col-span-2">
                         <p className="text-gray-900">{lastTurnResult.tileInteraction.message}</p>
                       </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Game Log */}
+                {gameLog.length > 0 && (
+                  <div className="mt-4">
+                    <p className="font-semibold text-gray-900 mb-2">Spel Geschiedenis:</p>
+                    <div className="bg-gray-50 rounded-lg p-3 max-h-64 overflow-y-auto space-y-1">
+                      {gameLog.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className={`text-xs p-2 rounded ${
+                            entry.type === 'bankruptcy' ? 'bg-red-100 text-red-800' :
+                            entry.type === 'purchase' ? 'bg-green-100 text-green-800' :
+                            entry.type === 'rent' ? 'bg-yellow-100 text-yellow-800' :
+                            entry.type === 'dice' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          <span className="text-[10px] text-gray-600 mr-2">
+                            {entry.timestamp.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                          <span>{entry.message}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
