@@ -548,6 +548,26 @@ export default function GamePage() {
           );
         }
         
+        // Jail
+        if (turnResult.jail) {
+          const jail = turnResult.jail;
+          if (jail.released) {
+            addToGameLog(
+              'jail',
+              `🔓 ${jail.message}`,
+              player.id,
+              player.name
+            );
+          } else {
+            addToGameLog(
+              'jail',
+              `🔒 ${jail.message}`,
+              player.id,
+              player.name
+            );
+          }
+        }
+        
         // Movement
         if (turnResult.movement) {
           const movement = turnResult.movement;
@@ -771,6 +791,8 @@ export default function GamePage() {
                         className={`p-3 rounded-lg border-2 transition-smooth ${
                           isCurrent
                             ? 'border-primary bg-primary/10'
+                            : player.inJail
+                            ? 'border-orange-500 bg-orange-50'
                             : 'border-gray-200'
                         }`}
                       >
@@ -780,8 +802,18 @@ export default function GamePage() {
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-gray-900">{player.name}</p>
                               {isMe && <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">Jij</span>}
+                              {player.inJail && (
+                                <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded flex items-center gap-1">
+                                  🔒 Gevangenis ({player.jailTurns}/3)
+                                </span>
+                              )}
                             </div>
                             <p className="text-sm text-gray-900 font-medium">{formatCurrency(player.balance)}</p>
+                            {player.inJail && (
+                              <p className="text-xs text-orange-700 mt-1">
+                                Gooi dubbel of wacht {3 - player.jailTurns} beurt(en)
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1169,13 +1201,14 @@ export default function GamePage() {
                       {gameLog.map((entry) => (
                         <div
                           key={entry.id}
-                          className={`text-xs p-2 rounded ${
-                            entry.type === 'bankruptcy' ? 'bg-red-100 text-red-800' :
-                            entry.type === 'purchase' ? 'bg-green-100 text-green-800' :
-                            entry.type === 'rent' ? 'bg-yellow-100 text-yellow-800' :
-                            entry.type === 'dice' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}
+                   className={`text-xs p-2 rounded ${
+                     entry.type === 'bankruptcy' ? 'bg-red-100 text-red-800' :
+                     entry.type === 'purchase' ? 'bg-green-100 text-green-800' :
+                     entry.type === 'rent' ? 'bg-yellow-100 text-yellow-800' :
+                     entry.type === 'dice' ? 'bg-blue-100 text-blue-800' :
+                     entry.type === 'jail' ? 'bg-orange-100 text-orange-800' :
+                     'bg-gray-100 text-gray-800'
+                   }`}
                         >
                           <span className="text-[10px] text-gray-600 mr-2">
                             {entry.timestamp.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

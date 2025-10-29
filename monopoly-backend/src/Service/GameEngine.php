@@ -72,18 +72,42 @@ class GameEngine
         // Step 1: Roll dice
         $diceResult = $this->rollDice();
         $game->setLastDiceRoll($diceResult['total']);
+        
+        // Check if player is in jail
+        $jailResult = null;
+        $movementResult = null;
+        $tileInteraction = null;
+        
+        if ($player->isInJail()) {
+            // Handle jail turn
+            $jailResult = $this->handleJailTurn($player, $diceResult, $game->getBank());
+            
+            // If player was released, they can move
+            if ($jailResult['released']) {
+                $movementResult = $this->movePlayer($player, $diceResult['total'], $game->getBoard());
+                
+                // Handle Go passing (unlikely from jail, but possible)
+                if ($movementResult['passedGo']) {
+                    $this->handleGoPass($player, $game->getBank());
+                }
+                
+                $tile = $game->getBoard()->getTile($player->getPosition());
+                $tileInteraction = $this->handleTileLanding($game, $player, $tile);
+            }
+        } else {
+            // Normal turn - not in jail
+            // Step 2: Move player and check for Go passing
+            $movementResult = $this->movePlayer($player, $diceResult['total'], $game->getBoard());
 
-        // Step 2: Move player and check for Go passing
-        $movementResult = $this->movePlayer($player, $diceResult['total'], $game->getBoard());
+            // Step 3: Handle Go passing bonus
+            if ($movementResult['passedGo']) {
+                $this->handleGoPass($player, $game->getBank());
+            }
 
-        // Step 3: Handle Go passing bonus
-        if ($movementResult['passedGo']) {
-            $this->handleGoPass($player, $game->getBank());
+            // Step 4: Handle tile landing
+            $tile = $game->getBoard()->getTile($player->getPosition());
+            $tileInteraction = $this->handleTileLanding($game, $player, $tile);
         }
-
-        // Step 4: Handle tile landing
-        $tile = $game->getBoard()->getTile($player->getPosition());
-        $tileInteraction = $this->handleTileLanding($game, $player, $tile);
 
         // Step 5: Check for bankruptcy
         $bankruptcyResult = $this->checkBankruptcy($game, $player);
@@ -101,8 +125,11 @@ class GameEngine
                 'balance' => $player->getBalance(),
                 'position' => $player->getPosition(),
                 'isActive' => $player->isActive(),
+                'inJail' => $player->isInJail(),
+                'jailTurns' => $player->getJailTurns(),
             ],
             'dice' => $diceResult,
+            'jail' => $jailResult,
             'movement' => $movementResult,
             'tileInteraction' => $tileInteraction,
             'bankruptcy' => $bankruptcyResult,
@@ -192,6 +219,77 @@ class GameEngine
     {
         $player->addBalance(self::GO_PASS_BONUS);
         $bank->deductBalance(self::GO_PASS_BONUS);
+    }
+
+    /**
+     * Handle a turn for a player in jail.
+     * 
+     * Jail escape options:
+     * 1. Roll doubles - immediate release and move
+     * 2. After 3 turns - automatic release (must pay €50)
+     * 
+     * @param Player $player The player in jail
+     * @param array $diceResult The dice roll result
+     * @param \App\Entity\Bank $bank The game's bank
+     * @return array Jail turn result
+     */
+    private function handleJailTurn(Player $player, array $diceResult, \App\Entity\Bank $bank): array
+    {
+        $player->incrementJailTurns();
+        $isDoubles = $diceResult['dice1'] === $diceResult['dice2'];
+        $jailFee = 50;
+        
+        // Option 1: Rolled doubles - immediate release
+        if ($isDoubles) {
+            $player->releaseFromJail();
+            
+            return [
+                'inJail' => false,
+                'released' => true,
+                'releaseMethod' => 'doubles',
+                'turnsInJail' => $player->getJailTurns(),
+                'message' => sprintf(
+                    '%s gooide dubbel (%d-%d) en is bevrijd uit de gevangenis!',
+                    $player->getName(),
+                    $diceResult['dice1'],
+                    $diceResult['dice2']
+                ),
+            ];
+        }
+        
+        // Option 2: After 3 turns - automatic release (must pay)
+        if ($player->getJailTurns() >= 3) {
+            // Player must pay to get out
+            $player->deductBalance($jailFee);
+            $bank->addBalance($jailFee);
+            $player->releaseFromJail();
+            
+            return [
+                'inJail' => false,
+                'released' => true,
+                'releaseMethod' => 'max_turns',
+                'paid' => $jailFee,
+                'turnsInJail' => 3,
+                'message' => sprintf(
+                    '%s heeft 3 beurten in de gevangenis gezeten en moet €%d betalen om vrij te komen',
+                    $player->getName(),
+                    $jailFee
+                ),
+            ];
+        }
+        
+        // Still in jail
+        return [
+            'inJail' => true,
+            'released' => false,
+            'turnsInJail' => $player->getJailTurns(),
+            'turnsRemaining' => 3 - $player->getJailTurns(),
+            'message' => sprintf(
+                '%s zit in de gevangenis (beurt %d/3). Gooi dubbel om vrij te komen!',
+                $player->getName(),
+                $player->getJailTurns()
+            ),
+        ];
     }
 
     /**
