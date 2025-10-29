@@ -18,6 +18,7 @@ const buttonVariants = {
     outline: "border-2 border-primary text-primary hover:bg-primary hover:text-white",
     ghost: "hover:bg-primary/10 text-primary",
     danger: "bg-red-500 text-white hover:bg-red-600",
+    destructive: "bg-red-600 text-white hover:bg-red-700 font-semibold",
   },
   size: {
     default: "h-10 px-4 py-2",

@@ -10,6 +10,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -667,7 +668,7 @@ export default function GamePage() {
                     Winnaar! 🎉
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <div className="text-center">
                     <div className="text-4xl mb-2">
                       {PLAYER_TOKENS.find(t => t.value === winner.token)?.emoji}
@@ -684,6 +685,16 @@ export default function GamePage() {
                       </p>
                     )}
                   </div>
+                  
+                  {/* Back to Home Button */}
+                  <Link href="/" className="block">
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      Nieuw Spel Starten 🎮
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             )}
