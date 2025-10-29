@@ -27,6 +27,9 @@ import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy, Co
 // Dynamic import for Confetti (client-side only)
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
+// Import Framer Motion for animations
+import { motion, AnimatePresence } from 'framer-motion';
+
 /**
  * Monopoly Board Tile Names (simplified)
  * 40 tiles arranged clockwise from position 0 (GO)
@@ -1594,29 +1597,56 @@ export default function GamePage() {
                           </div>
                           
                           {/* Players on this tile */}
-                          {playersHere.length > 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-0.5 pb-0.5">
-                              {playersHere.map(player => {
-                                const token = PLAYER_TOKENS.find(t => t.value === player.token);
-                                const isMe = player.id === currentPlayerId;
-                                const isTurn = player.id === currentPlayer?.id;
-                                return (
-                                  <div
-                                    key={player.id}
-                                    className={`
-                                      text-lg bg-white rounded-full w-5 h-5 flex items-center justify-center border
-                                      cursor-help transition-transform hover:scale-150 hover:z-50
-                                      ${isMe ? 'border-blue-500 border-2' : 'border-gray-300'}
-                                      ${isTurn ? 'ring-2 ring-yellow-400' : ''}
-                                    `}
-                                    title={`${player.name} - ${formatCurrency(player.balance)}${isMe ? ' (Jij)' : ''}${isTurn ? ' (Aan de beurt)' : ''}`}
-                                  >
-                                    <span className="text-xs">{token?.emoji || '❓'}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                          <AnimatePresence mode="popLayout">
+                            {playersHere.length > 0 && (
+                              <motion.div 
+                                className="absolute bottom-0 left-0 right-0 flex justify-center gap-0.5 pb-0.5"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                              >
+                                {playersHere.map(player => {
+                                  const token = PLAYER_TOKENS.find(t => t.value === player.token);
+                                  const isMe = player.id === currentPlayerId;
+                                  const isTurn = player.id === currentPlayer?.id;
+                                  return (
+                                    <motion.div
+                                      key={player.id}
+                                      layoutId={`player-token-${player.id}`}
+                                      initial={{ scale: 0.8, opacity: 0 }}
+                                      animate={{ 
+                                        scale: 1, 
+                                        opacity: 1,
+                                        y: isTurn ? [0, -3, 0] : 0,
+                                      }}
+                                      exit={{ scale: 0.8, opacity: 0 }}
+                                      transition={{ 
+                                        type: "spring",
+                                        stiffness: 300,
+                                        damping: 25,
+                                        mass: 0.8,
+                                        y: {
+                                          duration: 0.6,
+                                          repeat: isTurn ? Infinity : 0,
+                                          repeatDelay: 0.5,
+                                        }
+                                      }}
+                                      className={`
+                                        text-lg bg-white rounded-full w-5 h-5 flex items-center justify-center border
+                                        cursor-help hover:scale-150 hover:z-50 transition-transform
+                                        ${isMe ? 'border-blue-500 border-2' : 'border-gray-300'}
+                                        ${isTurn ? 'ring-2 ring-yellow-400 shadow-lg' : ''}
+                                      `}
+                                      title={`${player.name} - ${formatCurrency(player.balance)}${isMe ? ' (Jij)' : ''}${isTurn ? ' (Aan de beurt)' : ''}`}
+                                      whileHover={{ scale: 1.5, zIndex: 50 }}
+                                    >
+                                      <span className="text-xs">{token?.emoji || '❓'}</span>
+                                    </motion.div>
+                                  );
+                                })}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
