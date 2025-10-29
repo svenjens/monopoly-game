@@ -66,8 +66,26 @@ export const useGameState = create<GameState>((set, get) => ({
 
   /**
    * Set the current player ID (this client's player).
+   * CRITICAL: This should only be set once and never be null after initial set!
    */
-  setCurrentPlayerId: (playerId) => set({ currentPlayerId: playerId }),
+  setCurrentPlayerId: (playerId) => {
+    const currentId = get().currentPlayerId;
+    
+    // Log all changes
+    console.log('🔑 setCurrentPlayerId called:', { 
+      from: currentId, 
+      to: playerId,
+      stack: new Error().stack?.split('\n')[2] // Show where it's called from
+    });
+    
+    // SAFETY: Don't allow clearing if already set (protect from accidental resets)
+    if (currentId && !playerId) {
+      console.warn('⚠️ Attempted to clear currentPlayerId - BLOCKED for safety!');
+      return;
+    }
+    
+    set({ currentPlayerId: playerId });
+  },
 
   /**
    * Set loading state.
@@ -167,10 +185,23 @@ export const useIsMyTurn = () => {
   const game = useGameState((state) => state.game);
   const currentPlayerId = useGameState((state) => state.currentPlayerId);
   
-  if (!game || !currentPlayerId) return false;
+  if (!game || !currentPlayerId) {
+    console.log('❌ useIsMyTurn: Missing data', { game: !!game, currentPlayerId });
+    return false;
+  }
   
   const currentPlayer = game.players[game.currentPlayerIndex];
-  return currentPlayer?.id === currentPlayerId;
+  const isMyTurn = currentPlayer?.id === currentPlayerId;
+  
+  console.log('🎯 useIsMyTurn check:', {
+    currentPlayerIndex: game.currentPlayerIndex,
+    currentPlayerInGame: currentPlayer?.name,
+    currentPlayerInGameId: currentPlayer?.id,
+    myPlayerId: currentPlayerId,
+    isMyTurn,
+  });
+  
+  return isMyTurn;
 };
 
 export const useCurrentPlayer = () => {

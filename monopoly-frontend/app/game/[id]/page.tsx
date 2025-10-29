@@ -150,10 +150,25 @@ export default function GamePage() {
     // Try to restore player ID from sessionStorage (per-tab, not shared!)
     const storedPlayerId = sessionStorage.getItem(`game_${gameId}_player`);
     if (storedPlayerId) {
-      console.log('Restored player ID from sessionStorage:', storedPlayerId);
+      console.log('📥 Restored player ID from sessionStorage:', storedPlayerId);
       setCurrentPlayerId(storedPlayerId);
     }
   }, [gameId]);
+  
+  /**
+   * CRITICAL: Auto-restore currentPlayerId from sessionStorage on EVERY render
+   * if it somehow got lost (e.g., due to state reset or re-render).
+   */
+  useEffect(() => {
+    // If we DON'T have currentPlayerId in state but DO have it in sessionStorage, restore it!
+    if (!currentPlayerId) {
+      const storedPlayerId = sessionStorage.getItem(`game_${gameId}_player`);
+      if (storedPlayerId) {
+        console.warn('⚠️ currentPlayerId was missing - RESTORING from sessionStorage:', storedPlayerId);
+        setCurrentPlayerId(storedPlayerId);
+      }
+    }
+  }, [currentPlayerId, gameId, setCurrentPlayerId]); // Run whenever currentPlayerId changes
   
   /**
    * Restore player ID from game data if we have a name match but no stored ID.
@@ -883,7 +898,10 @@ export default function GamePage() {
                           const playersHere = game?.players.filter(p => p.position === tilePos) || [];
                           
                           // Find tile data from game state to check ownership
-                          const gameTile = game?.board?.tiles[tilePos];
+                          // tiles is an object with position as key, not an array
+                          const gameTile = game?.board?.tiles 
+                            ? (game.board.tiles as any)[tilePos.toString()]
+                            : null;
                           const owner = gameTile?.ownerId 
                             ? game?.players.find(p => p.id === gameTile.ownerId)
                             : null;
