@@ -565,12 +565,15 @@ export default function GamePage() {
       const response = await rollDice(gameId);
       
       if (response.success && response.data) {
+        console.log('🎲 Roll dice response:', response.data);
         setLastTurnResult(response.data);
         setGame(response.data.gameState);
         
         // Add to game log
         const turnResult = response.data;
         const player = turnResult.player;
+        console.log('👤 Player from turn result:', player);
+        console.log('🎯 Tile interaction:', turnResult.tileInteraction);
         
         // Dice roll
         if (turnResult.dice) {
