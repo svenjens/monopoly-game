@@ -619,6 +619,7 @@ export default function GamePage() {
         // Tile interaction
         if (turnResult.tileInteraction) {
           const tile = turnResult.tileInteraction;
+          console.log('🔍 Tile interaction:', tile);
           
           // Property actions
           if (tile.action === 'property_available') {
@@ -629,13 +630,19 @@ export default function GamePage() {
               canAfford: tile.canAfford,
               isMyTurn,
               currentPlayerId,
-              playerId: player.id
+              playerId: player.id,
+              isMyPlayer: player.id === currentPlayerId
             });
-            setPropertyOffer({
-              propertyName: tile.propertyName,
-              price: tile.price,
-              canAfford: tile.canAfford,
-            });
+            
+            // Only show if it's MY player who rolled (not necessarily my turn anymore)
+            if (player.id === currentPlayerId) {
+              setPropertyOffer({
+                propertyName: tile.propertyName,
+                price: tile.price,
+                canAfford: tile.canAfford,
+              });
+            }
+            
             addToGameLog(
               'property_available',
               tile.message,
@@ -1216,8 +1223,8 @@ export default function GamePage() {
                   </div>
                   
                   {/* Property Purchase Dialog */}
-                  {console.log('🔍 Property offer state:', { propertyOffer, isMyTurn, show: !!(propertyOffer && isMyTurn) })}
-                  {propertyOffer && isMyTurn && (
+                  {console.log('🔍 Property offer state:', { propertyOffer, isMyTurn, myPlayer, show: !!propertyOffer })}
+                  {propertyOffer && (
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-500 rounded-lg p-4">
                       <h3 className="font-bold text-lg text-gray-900 mb-2">🏠 Property Beschikbaar!</h3>
                       <div className="space-y-3">
