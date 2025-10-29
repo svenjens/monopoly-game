@@ -71,17 +71,15 @@ export const useGameState = create<GameState>((set, get) => ({
   setCurrentPlayerId: (playerId) => {
     const currentId = get().currentPlayerId;
     
-    // Log all changes
-    console.log('🔑 setCurrentPlayerId called:', { 
-      from: currentId, 
-      to: playerId,
-      stack: new Error().stack?.split('\n')[2] // Show where it's called from
-    });
-    
     // SAFETY: Don't allow clearing if already set (protect from accidental resets)
     if (currentId && !playerId) {
       console.warn('⚠️ Attempted to clear currentPlayerId - BLOCKED for safety!');
       return;
+    }
+    
+    // Only log changes, not repeated sets of same value
+    if (currentId !== playerId) {
+      console.log('🔑 Player ID changed:', currentId || 'null', '→', playerId);
     }
     
     set({ currentPlayerId: playerId });
@@ -182,28 +180,18 @@ export const useGameState = create<GameState>((set, get) => ({
  * Computed selectors for derived state.
  */
 export const useIsMyTurn = () => {
-  // CRITICAL: Subscribe to BOTH dependencies to trigger re-render on changes!
-  const game = useGameState((state) => state.game);
-  const currentPlayerId = useGameState((state) => state.currentPlayerId);
-  
-  // Also watch currentPlayerIndex directly to ensure re-render
-  const currentPlayerIndex = useGameState((state) => state.game?.currentPlayerIndex);
+  // Use single selector to avoid re-render loop!
+  const { game, currentPlayerId } = useGameState((state) => ({
+    game: state.game,
+    currentPlayerId: state.currentPlayerId,
+  }));
   
   if (!game || !currentPlayerId) {
-    console.log('❌ useIsMyTurn: Missing data', { game: !!game, currentPlayerId });
     return false;
   }
   
   const currentPlayer = game.players[game.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === currentPlayerId;
-  
-  console.log('🎯 useIsMyTurn check:', {
-    currentPlayerIndex: game.currentPlayerIndex,
-    currentPlayerInGame: currentPlayer?.name,
-    currentPlayerInGameId: currentPlayer?.id,
-    myPlayerId: currentPlayerId,
-    isMyTurn,
-  });
   
   return isMyTurn;
 };
@@ -217,8 +205,10 @@ export const useCurrentPlayer = () => {
 };
 
 export const useMyPlayer = () => {
-  const game = useGameState((state) => state.game);
-  const currentPlayerId = useGameState((state) => state.currentPlayerId);
+  const { game, currentPlayerId } = useGameState((state) => ({
+    game: state.game,
+    currentPlayerId: state.currentPlayerId,
+  }));
   
   if (!game || !currentPlayerId) return null;
   
