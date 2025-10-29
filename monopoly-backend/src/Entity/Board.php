@@ -48,12 +48,12 @@ class Board
             
             // Positions 1-9
             1 => new PropertyTile(1, 'Mediterranean Avenue', 'brown', 60, 2),
-            2 => new TaxTile(2, 'Community Chest', 0), // Simplified: no action
+            2 => new CommunityChestTile(2),
             3 => new PropertyTile(3, 'Baltic Avenue', 'brown', 60, 4),
             4 => new TaxTile(4, 'Income Tax', 200),
             5 => new RailroadTile(5, 'Reading Railroad'),
             6 => new PropertyTile(6, 'Oriental Avenue', 'light_blue', 100, 6),
-            7 => new TaxTile(7, 'Chance', 0), // Simplified: no action
+            7 => new ChanceTile(7),
             8 => new PropertyTile(8, 'Vermont Avenue', 'light_blue', 100, 6),
             9 => new PropertyTile(9, 'Connecticut Avenue', 'light_blue', 120, 8),
             
@@ -67,7 +67,7 @@ class Board
             14 => new PropertyTile(14, 'Virginia Avenue', 'pink', 160, 12),
             15 => new RailroadTile(15, 'Pennsylvania Railroad'),
             16 => new PropertyTile(16, 'St. James Place', 'orange', 180, 14),
-            17 => new TaxTile(17, 'Community Chest', 0), // Simplified: no action
+            17 => new CommunityChestTile(17),
             18 => new PropertyTile(18, 'Tennessee Avenue', 'orange', 180, 14),
             19 => new PropertyTile(19, 'New York Avenue', 'orange', 200, 16),
             
@@ -76,7 +76,7 @@ class Board
             
             // Positions 21-29
             21 => new PropertyTile(21, 'Kentucky Avenue', 'red', 220, 18),
-            22 => new TaxTile(22, 'Chance', 0), // Simplified: no action
+            22 => new ChanceTile(22),
             23 => new PropertyTile(23, 'Indiana Avenue', 'red', 220, 18),
             24 => new PropertyTile(24, 'Illinois Avenue', 'red', 240, 20),
             25 => new RailroadTile(25, 'B&O Railroad'),
@@ -91,10 +91,10 @@ class Board
             // Positions 31-39
             31 => new PropertyTile(31, 'Pacific Avenue', 'green', 300, 26),
             32 => new PropertyTile(32, 'North Carolina Avenue', 'green', 300, 26),
-            33 => new TaxTile(33, 'Community Chest', 0), // Simplified: no action
+            33 => new CommunityChestTile(33),
             34 => new PropertyTile(34, 'Pennsylvania Avenue', 'green', 320, 28),
             35 => new RailroadTile(35, 'Short Line'),
-            36 => new TaxTile(36, 'Chance', 0), // Simplified: no action
+            36 => new ChanceTile(36),
             37 => new PropertyTile(37, 'Park Place', 'dark_blue', 350, 35),
             38 => new TaxTile(38, 'Luxury Tax', 100),
             39 => new PropertyTile(39, 'Boardwalk', 'dark_blue', 400, 50),

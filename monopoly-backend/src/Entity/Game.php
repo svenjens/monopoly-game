@@ -81,6 +81,20 @@ class Game
     private int $lastDiceRoll = 0;
 
     /**
+     * Chance card deck.
+     * 
+     * @var Card[]
+     */
+    private array $chanceCards = [];
+
+    /**
+     * Community Chest card deck.
+     * 
+     * @var Card[]
+     */
+    private array $communityChestCards = [];
+
+    /**
      * Initialize a new game.
      */
     public function __construct()
@@ -92,6 +106,10 @@ class Game
         $this->status = GameStatus::WAITING;
         $this->createdAt = new \DateTimeImmutable();
         $this->lastActivityAt = new \DateTimeImmutable();
+        
+        // Initialize card decks
+        $this->initializeChanceCards();
+        $this->initializeCommunityChestCards();
     }
 
     public function getId(): string
@@ -292,6 +310,76 @@ class Game
         }
 
         return null;
+    }
+
+    /**
+     * Initialize the Chance card deck with all cards.
+     */
+    private function initializeChanceCards(): void
+    {
+        $this->chanceCards = [
+            new Card('chance', 'Ga naar Start', 'move_to', ['position' => 0]),
+            new Card('chance', 'Ga 3 vakjes terug', 'move', ['spaces' => -3]),
+            new Card('chance', 'Ontvang €200', 'collect', ['amount' => 200]),
+            new Card('chance', 'Betaal €50 boete', 'pay_to_pot', ['amount' => 50]),
+            new Card('chance', 'Ga direct naar de gevangenis', 'go_to_jail', []),
+            new Card('chance', 'Ontvang €100 van de bank', 'collect', ['amount' => 100]),
+            new Card('chance', 'Betaal €150 aan de bank', 'pay', ['amount' => 150]),
+        ];
+        
+        // Shuffle the deck
+        shuffle($this->chanceCards);
+    }
+
+    /**
+     * Initialize the Community Chest card deck with all cards.
+     */
+    private function initializeCommunityChestCards(): void
+    {
+        $this->communityChestCards = [
+            new Card('community_chest', 'Bankfout in uw voordeel. Ontvang €200', 'collect', ['amount' => 200]),
+            new Card('community_chest', 'Betaal ziekenhuiskosten €100', 'pay', ['amount' => 100]),
+            new Card('community_chest', 'Verjaardagsgeld! Ontvang €100', 'collect', ['amount' => 100]),
+            new Card('community_chest', 'Ontvang €50 van verkoop aandelen', 'collect', ['amount' => 50]),
+            new Card('community_chest', 'Ga direct naar de gevangenis', 'go_to_jail', []),
+            new Card('community_chest', 'Betaal schoolgeld €150', 'pay', ['amount' => 150]),
+            new Card('community_chest', 'U erft €100', 'collect', ['amount' => 100]),
+        ];
+        
+        // Shuffle the deck
+        shuffle($this->communityChestCards);
+    }
+
+    /**
+     * Draw a Chance card from the deck.
+     * 
+     * @return Card|null The drawn card, or null if deck is empty
+     */
+    public function drawChanceCard(): ?Card
+    {
+        if (empty($this->chanceCards)) {
+            // Reshuffle if deck is empty
+            $this->initializeChanceCards();
+        }
+        
+        // Draw the top card
+        return array_shift($this->chanceCards);
+    }
+
+    /**
+     * Draw a Community Chest card from the deck.
+     * 
+     * @return Card|null The drawn card, or null if deck is empty
+     */
+    public function drawCommunityChestCard(): ?Card
+    {
+        if (empty($this->communityChestCards)) {
+            // Reshuffle if deck is empty
+            $this->initializeCommunityChestCards();
+        }
+        
+        // Draw the top card
+        return array_shift($this->communityChestCards);
     }
 }
 

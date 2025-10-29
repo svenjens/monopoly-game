@@ -17,6 +17,8 @@ enum TileType: string
     case RAILROAD = 'railroad';
     case UTILITY = 'utility';
     case TAX = 'tax';
+    case CHANCE = 'chance';
+    case COMMUNITY_CHEST = 'community_chest';
     case JAIL = 'jail';
     case FREE_PARKING = 'free_parking';
     case GO_TO_JAIL = 'go_to_jail';
