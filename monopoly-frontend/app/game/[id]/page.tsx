@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getGame, joinGame, rollDice, startGame, endGame } from '@/lib/api';
+import { getGame, joinGame, rollDice, startGame, endGame, purchaseProperty, payJailFee } from '@/lib/api';
 import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '@/lib/validation';
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -674,11 +674,11 @@ export default function GamePage() {
    * Purchase property.
    */
   const handlePurchaseProperty = async () => {
-    if (!propertyOffer || isPurchasing) return;
+    if (!propertyOffer || isPurchasing || !gameId) return;
     
     setIsPurchasing(true);
     try {
-      const response = await apiClient.post<any>(`/games/${gameId}/purchase`, {});
+      const response = await purchaseProperty(gameId);
       
       if (response.success && response.data) {
         toast.success(`✅ ${propertyOffer.propertyName} gekocht!`);
@@ -729,7 +729,7 @@ export default function GamePage() {
     if (!gameId || !currentPlayer) return;
     
     try {
-      const response = await apiClient.post<any>(`/games/${gameId}/pay-jail`, {});
+      const response = await payJailFee(gameId);
       
       if (response.success && response.data) {
         toast.success('🔓 Vrijgekocht uit gevangenis voor €50!');

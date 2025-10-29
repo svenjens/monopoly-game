@@ -263,3 +263,31 @@ export async function listGames(): Promise<ApiResponse<{ games: GameSummary[]; t
   return apiFetch<{ games: GameSummary[]; total: number }>('/api/games');
 }
 
+/**
+ * Purchase a property.
+ * 
+ * POST /api/games/{id}/purchase
+ * 
+ * @param gameId - Game identifier
+ * @returns Purchase result with updated game state
+ */
+export async function purchaseProperty(gameId: string): Promise<ApiResponse<{ purchase: any; gameState: Game }>> {
+  return apiFetch<{ purchase: any; gameState: Game }>(`/api/games/${gameId}/purchase`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Pay €50 to get out of jail.
+ * 
+ * POST /api/games/{id}/pay-jail
+ * 
+ * @param gameId - Game identifier
+ * @returns Jail result with updated game state
+ */
+export async function payJailFee(gameId: string): Promise<ApiResponse<{ jail: any; gameState: Game }>> {
+  return apiFetch<{ jail: any; gameState: Game }>(`/api/games/${gameId}/pay-jail`, {
+    method: 'POST',
+  });
+}
+
