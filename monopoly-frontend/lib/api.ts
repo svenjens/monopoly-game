@@ -291,3 +291,19 @@ export async function payJailFee(gameId: string): Promise<ApiResponse<{ jail: an
   });
 }
 
+/**
+ * Build a house on a property.
+ * 
+ * POST /api/games/{id}/build-house
+ * 
+ * @param gameId - Game identifier
+ * @param position - Board position of the property
+ * @returns Build result with updated game state
+ */
+export async function buildHouse(gameId: string, position: number): Promise<ApiResponse<{ build: any; gameState: Game }>> {
+  return apiFetch<{ build: any; gameState: Game }>(`/api/games/${gameId}/build-house`, {
+    method: 'POST',
+    body: JSON.stringify({ position }),
+  });
+}
+

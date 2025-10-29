@@ -130,6 +130,7 @@ export const useGameState = create<GameState>((set, get) => ({
       case WS_EVENTS.TURN_ENDED:
       case 'game:started':
       case 'game:ended':
+      case 'house:built':
         // All these events should update the full game state
         if (data?.game || data?.gameState || data) {
           const gameData = data.game || data.gameState || data;

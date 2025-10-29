@@ -52,6 +52,8 @@ export interface Tile {
   rent?: number;
   color?: PropertyColor;
   owner?: string | null; // Owner ID
+  houses?: number; // Number of houses (0-4) or 5 for hotel
+  buildCost?: number; // Cost to build a house
 }
 
 /**

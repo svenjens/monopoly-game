@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getGame, joinGame, rollDice, startGame, endGame, purchaseProperty, payJailFee } from '@/lib/api';
+import { getGame, joinGame, rollDice, startGame, endGame, purchaseProperty, payJailFee, buildHouse } from '@/lib/api';
 import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '@/lib/validation';
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -136,6 +136,9 @@ export default function GamePage() {
     canAfford: boolean;
   } | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  
+  // Building houses
+  const [isBuilding, setIsBuilding] = useState<number | null>(null); // position being built on
   
   // WebSocket
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
@@ -752,6 +755,64 @@ export default function GamePage() {
     }
   };
   
+  /**
+   * Build a house on a property.
+   */
+  const handleBuildHouse = async (position: number, propertyName: string, buildCost: number) => {
+    if (!gameId || !currentPlayer || isBuilding !== null) return;
+    
+    setIsBuilding(position);
+    try {
+      const response = await buildHouse(gameId, position);
+      
+      if (response.success && response.data) {
+        const build = response.data.build;
+        
+        // Show success message
+        toast.success(build.message);
+        
+        // Log to game log
+        addToGameLog(
+          'build',
+          build.message,
+          currentPlayer.id,
+          currentPlayer.name
+        );
+        
+        // Update game state (will be updated via WebSocket, but also set locally for immediate feedback)
+        if (response.data.gameState) {
+          setGame(response.data.gameState);
+        }
+      } else {
+        toast.error(response.error || 'Kon huis niet bouwen');
+      }
+    } catch (err) {
+      toast.error('Netwerk fout bij bouwen');
+    } finally {
+      setIsBuilding(null);
+    }
+  };
+  
+  /**
+   * Check if player has monopoly for a given color.
+   */
+  const hasMonopoly = (color: string, properties: any[]): boolean => {
+    if (!color || !game) return false;
+    
+    // Get all properties of this color from the board
+    const colorProperties = game.board.filter(
+      (tile) => tile.color === color && tile.type === 'property'
+    );
+    
+    // Get owned properties of this color
+    const ownedColorProperties = properties.filter(
+      (prop) => prop.color === color && prop.type === 'property'
+    );
+    
+    // Has monopoly if owns all properties of this color
+    return colorProperties.length > 0 && colorProperties.length === ownedColorProperties.length;
+  };
+  
   // Loading state
   if (isLoading && !game) {
     return (
@@ -937,7 +998,7 @@ export default function GamePage() {
                   <CardTitle className="text-gray-900">🏠 Mijn Bezittingen ({currentPlayer.properties.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
                     {currentPlayer.properties.map((property: any) => {
                       // Determine property color or type
                       const propertyColor = property.color || 'gray';
@@ -954,17 +1015,92 @@ export default function GamePage() {
                         'utility': 'bg-gray-600 text-white',
                       }[propertyColor] || 'bg-gray-500 text-white';
                       
+                      // Check if this is a buildable property
+                      const isBuildable = property.type === 'property' && property.buildCost;
+                      const houses = property.houses || 0;
+                      const hasHotel = houses === 5;
+                      const canBuild = isBuildable && houses < 5;
+                      const monopoly = property.color ? hasMonopoly(property.color, currentPlayer.properties) : false;
+                      const canAffordBuild = property.buildCost && myPlayer && myPlayer.balance >= property.buildCost;
+                      
                       return (
                         <div
                           key={property.position}
-                          className={`p-2 rounded text-xs font-medium ${colorClass}`}
+                          className={`p-3 rounded-lg ${colorClass} border-2 ${monopoly ? 'border-yellow-300 shadow-lg' : 'border-transparent'}`}
                         >
-                          <div className="flex justify-between items-center">
-                            <span>{property.name}</span>
+                          {/* Property Header */}
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <div className="font-bold text-sm">{property.name}</div>
+                              {monopoly && (
+                                <div className="text-xs opacity-90 mt-1 flex items-center gap-1">
+                                  <Trophy className="w-3 h-3" />
+                                  Monopolie!
+                                </div>
+                              )}
+                            </div>
                             {property.type === 'property' && property.rent && (
-                              <span className="text-xs opacity-80">€{property.rent}/beurt</span>
+                              <div className="text-right">
+                                <div className="text-xs opacity-80">Huur</div>
+                                <div className="font-bold text-sm">€{property.rent}</div>
+                              </div>
                             )}
                           </div>
+                          
+                          {/* Houses/Hotel Display */}
+                          {isBuildable && (
+                            <div className="mt-2 mb-2">
+                              {hasHotel ? (
+                                <div className="flex items-center gap-1 text-sm">
+                                  <span className="text-2xl">🏨</span>
+                                  <span className="font-semibold">Hotel</span>
+                                </div>
+                              ) : houses > 0 ? (
+                                <div className="flex items-center gap-1 text-lg">
+                                  {Array.from({ length: houses }).map((_, i) => (
+                                    <span key={i}>🏠</span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-xs opacity-70">Geen huizen</div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Build Button */}
+                          {isBuildable && canBuild && isMyTurn && (
+                            <div className="mt-2 pt-2 border-t border-white/20">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-xs">
+                                  <div className="opacity-80">Bouwen:</div>
+                                  <div className="font-bold">€{property.buildCost}</div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleBuildHouse(property.position, property.name, property.buildCost)}
+                                  disabled={!monopoly || !canAffordBuild || isBuilding === property.position}
+                                  className="text-xs px-3 py-1 h-auto bg-white/20 hover:bg-white/30 disabled:opacity-50"
+                                  title={
+                                    !monopoly 
+                                      ? 'Monopolie vereist' 
+                                      : !canAffordBuild 
+                                      ? 'Onvoldoende saldo' 
+                                      : hasHotel
+                                      ? 'Volgebouwd'
+                                      : 'Bouw huis'
+                                  }
+                                >
+                                  {isBuilding === property.position ? '⏳' : hasHotel ? '🏨' : houses === 4 ? '🏨' : '🏠+'}
+                                </Button>
+                              </div>
+                              {!monopoly && (
+                                <div className="text-xs opacity-70 mt-1">⚠️ Monopolie vereist</div>
+                              )}
+                              {monopoly && !canAffordBuild && (
+                                <div className="text-xs opacity-70 mt-1">⚠️ Onvoldoende geld</div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1306,6 +1442,12 @@ export default function GamePage() {
                           const tileInfo = `Positie ${tilePos}: ${tile.name}${
                             owner ? `\n🏠 Eigenaar: ${owner.name}` : ''
                           }${
+                            gameTile?.houses > 0 
+                              ? gameTile.houses === 5 
+                                ? `\n🏨 Hotel` 
+                                : `\n🏠 ${gameTile.houses} huis${gameTile.houses > 1 ? 'en' : ''}` 
+                              : ''
+                          }${
                             gameTile?.type === 'property' ? `\n💰 Huur: €${gameTile.rent || 0}` : ''
                           }`;
                           
@@ -1331,6 +1473,23 @@ export default function GamePage() {
                               title={`Eigenaar: ${owner.name}`}
                             >
                               {ownerToken.emoji}
+                            </div>
+                          )}
+                          
+                          {/* Houses/Hotel indicator (top left corner) */}
+                          {gameTile?.houses > 0 && (
+                            <div 
+                              className="absolute top-0 left-0 bg-blue-600 rounded-br-lg px-1 text-xs border-r border-b border-white flex items-center gap-0.5"
+                              title={gameTile.houses === 5 ? 'Hotel' : `${gameTile.houses} huis${gameTile.houses > 1 ? 'en' : ''}`}
+                            >
+                              {gameTile.houses === 5 ? (
+                                <span className="text-sm">🏨</span>
+                              ) : (
+                                <>
+                                  <span className="text-[0.6rem]">🏠</span>
+                                  <span className="text-white font-bold text-[0.55rem]">{gameTile.houses}</span>
+                                </>
+                              )}
                             </div>
                           )}
                           
@@ -1419,8 +1578,9 @@ export default function GamePage() {
                    className={`text-xs p-2 rounded ${
                      entry.type === 'bankruptcy' ? 'bg-red-100 text-red-800' :
                      entry.type === 'purchase' ? 'bg-green-100 text-green-800' :
+                     entry.type === 'build' ? 'bg-blue-100 text-blue-800' :
                      entry.type === 'rent' ? 'bg-yellow-100 text-yellow-800' :
-                     entry.type === 'dice' ? 'bg-blue-100 text-blue-800' :
+                     entry.type === 'dice' ? 'bg-indigo-100 text-indigo-800' :
                      entry.type === 'jail' ? 'bg-orange-100 text-orange-800' :
                      'bg-gray-100 text-gray-800'
                    }`}
