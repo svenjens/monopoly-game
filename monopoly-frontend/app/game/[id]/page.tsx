@@ -79,6 +79,21 @@ export default function GamePage() {
       setShowJoinDialog(true);
     }
   }, [nameFromUrl, game, currentPlayerId]);
+
+  /**
+   * Poll for game updates when waiting for players.
+   * This ensures the first player sees when others join.
+   */
+  useEffect(() => {
+    if (!game || game.status !== 'waiting') return;
+    
+    const pollInterval = setInterval(() => {
+      console.log('Polling for game updates (waiting for players)...');
+      loadGame();
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [game?.status]);
   
   /**
    * Load game data from API with retry logic.
