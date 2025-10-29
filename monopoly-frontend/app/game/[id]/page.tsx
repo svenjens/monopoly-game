@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
+import { CardModal } from '@/components/ui/card-modal';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getGame, joinGame, rollDice, startGame, endGame, purchaseProperty, payJailFee, buildHouse } from '@/lib/api';
@@ -142,6 +143,13 @@ export default function GamePage() {
   
   // Building houses
   const [isBuilding, setIsBuilding] = useState<number | null>(null); // position being built on
+  
+  // Card modal
+  const [cardModal, setCardModal] = useState<{
+    cardType: 'chance' | 'community_chest';
+    description: string;
+    action: string;
+  } | null>(null);
   
   // WebSocket
   const { isConnected, subscribe } = useWebSocket(handleWebSocketMessage);
@@ -643,63 +651,35 @@ export default function GamePage() {
             );
           }
           
-          // Chance card actions
-          else if (tile.action === 'card_collect') {
+          // Chance and Community Chest card actions
+          else if (tile.action?.startsWith('card_')) {
+            // Show card modal
+            setCardModal({
+              cardType: tile.cardType || 'chance',
+              description: tile.description,
+              action: tile.action,
+            });
+            
+            // Log to game log
+            let logMessage = `🎴 ${player.name}: ${tile.description}`;
+            if (tile.action === 'card_collect') {
+              logMessage += ` (+€${tile.amount})`;
+            } else if (tile.action === 'card_pay') {
+              logMessage += ` (-€${tile.amount})`;
+            } else if (tile.action === 'card_pay_to_pot') {
+              logMessage += ` (-€${tile.amount} naar pot)`;
+            } else if (tile.action === 'card_move') {
+              logMessage += ` (${tile.spaces > 0 ? '+' : ''}${tile.spaces} vakjes)`;
+            } else if (tile.action === 'card_move_to' && tile.passedGo) {
+              logMessage += ' (passeerde Start!)';
+            }
+            
             addToGameLog(
               'card',
-              `🎴 ${player.name}: ${tile.description} (+€${tile.amount})`,
+              logMessage,
               player.id,
               player.name
             );
-            toast.success(`🎴 ${tile.description}`);
-          } else if (tile.action === 'card_pay') {
-            addToGameLog(
-              'card',
-              `🎴 ${player.name}: ${tile.description} (-€${tile.amount})`,
-              player.id,
-              player.name
-            );
-            toast.info(`🎴 ${tile.description}`);
-          } else if (tile.action === 'card_pay_to_pot') {
-            addToGameLog(
-              'card',
-              `🎴 ${player.name}: ${tile.description} (-€${tile.amount} naar pot)`,
-              player.id,
-              player.name
-            );
-            toast.info(`🎴 ${tile.description}`);
-          } else if (tile.action === 'card_move') {
-            addToGameLog(
-              'card',
-              `🎴 ${player.name}: ${tile.description} (${tile.spaces > 0 ? '+' : ''}${tile.spaces} vakjes)`,
-              player.id,
-              player.name
-            );
-            toast.info(`🎴 ${tile.description}`);
-          } else if (tile.action === 'card_move_to') {
-            addToGameLog(
-              'card',
-              `🎴 ${player.name}: ${tile.description}${tile.passedGo ? ' (passeerde Start!)' : ''}`,
-              player.id,
-              player.name
-            );
-            toast.info(`🎴 ${tile.description}`);
-          } else if (tile.action === 'card_go_to_jail') {
-            addToGameLog(
-              'card',
-              `🎴 ${player.name}: ${tile.description}`,
-              player.id,
-              player.name
-            );
-            toast.error(`🎴 ${tile.description}`);
-          } else if (tile.action === 'card_jail_free') {
-            addToGameLog(
-              'card',
-              `🎴 ${player.name}: ${tile.description}`,
-              player.id,
-              player.name
-            );
-            toast.success(`🎴 ${tile.description}`);
           }
           
           // Tax and other tile actions
@@ -1000,6 +980,15 @@ export default function GamePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 p-4">
       {/* Confetti for winner */}
       {showConfetti && <Confetti recycle={false} numberOfPieces={500} />}
+      
+      {/* Card Modal */}
+      <CardModal
+        isOpen={!!cardModal}
+        onClose={() => setCardModal(null)}
+        cardType={cardModal?.cardType || null}
+        description={cardModal?.description || ''}
+        action={cardModal?.action}
+      />
       
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
