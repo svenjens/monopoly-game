@@ -131,8 +131,15 @@ classDiagram
 ## ✨ Features
 
 - 🎮 **Turn-by-turn gameplay** - Klassiek Monopoly spel met volledige spelregels
+- 🏠 **Houses & Hotels** - Bouw op properties met monopoly, rent scaling (5x-25x)
+- 🏆 **Monopoly system** - Color groups met dubbele huur en build options
+- 🔒 **Complete jail mechanics** - Doubles, €50 betaling, 3-turn limit, visuele indicators
+- 🎴 **Chance & Community Chest** - 14 kaarten met volledige UI feedback
+- 💰 **Property management** - Kies om te kopen, overzicht van bezittingen
+- 💔 **Multi-player bankruptcy** - Spel gaat door, properties terug naar bank
 - 💾 **In-memory state** - Geen database nodig, alle game state in geheugen
 - 🔄 **Real-time updates** - WebSocket integratie voor live game updates
+- 📜 **Game log systeem** - Volledige geschiedenis van alle acties
 - 🎨 **Clean, modern design** - Responsive UI met smooth animaties
 - 🐳 **Docker ready** - Complete setup met één command
 - 📡 **RESTful API** - Voor game management en turn execution
@@ -223,14 +230,18 @@ monopoly-game/
 - **Free Parking** - Side pot verzameling
 
 ### Gameplay
-- 🎲 Rol dobbelstenen en beweeg over het bord
-- 🏠 Koop automatisch eigenschappen als je voldoende geld hebt
-- 💰 Betaal huur aan andere spelers
-- 🎴 Trek Kans en Algemeen Fonds kaarten
-- 🎁 Free Parking side pot verzameling
-- 🏦 Bank balans management
-- ⚡ Real-time updates via WebSocket
-- 🎯 Volledig Nederlands met tooltips
+- 🎲 **Dobbelstenen** - Rol en beweeg over het bord, +€200 bij Start
+- 🏠 **Properties** - Kies om te kopen wanneer je landt op vrije property
+- 🏆 **Monopolies** - Verzamel alle kleuren voor dubbele huur
+- 🏗️ **Bouwen** - Bouw huizen (4x) en hotels op monopolies
+- 💰 **Huur** - Scaling rent: base → 2x (monopoly) → 5x/8x/12x/18x/25x (hotel)
+- 🎴 **Kaarten** - Trek Kans en Algemeen Fonds kaarten met speciale acties
+- 🔒 **Gevangenis** - Betaal €50, gooi dubbel, of wacht 3 beurten
+- 💔 **Faillissement** - Bij negatief saldo: properties terug naar bank, spel gaat door
+- 🎁 **Free Parking** - Verzamel side pot van belastingen
+- 📜 **Game log** - Zie alle acties en transacties real-time
+- ⚡ **Real-time updates** - WebSocket voor multiplayer sync
+- 🎯 **Volledig Nederlands** - UI, tooltips, en notificaties
 
 ## 🎨 Design Patterns & Architecture
 
@@ -275,15 +286,22 @@ monopoly-game/
 ### Game Management
 - `POST /api/games` - Maak nieuw spel
 - `GET /api/games/{id}` - Haal game state op
-- `POST /api/games/{id}/join` - Join een spel
-- `POST /api/games/{id}/start` - Start het spel
-- `POST /api/games/{id}/turn` - Speel een turn
+- `POST /api/games/{id}/join` - Join een spel met naam en token
+- `POST /api/games/{id}/start` - Start het spel (min 2 spelers)
+- `POST /api/games/{id}/end` - Beëindig spel
+
+### Gameplay
+- `POST /api/games/{id}/roll` - Gooi dobbelstenen en voer turn uit
+- `POST /api/games/{id}/purchase` - Koop property waar je op staat
+- `POST /api/games/{id}/build-house` - Bouw huis op property (body: {position})
+- `POST /api/games/{id}/pay-jail` - Betaal €50 om uit gevangenis te komen
 
 ### WebSocket Events
-- `game_updated` - Game state veranderd
-- `player_joined` - Speler joined game
-- `turn_completed` - Turn afgerond
-- `game_started` - Game gestart
+- `player:joined` - Speler joined game
+- `game:started` - Game gestart
+- `turn:ended` - Turn afgerond met volledige state
+- `game:ended` - Game beëindigd
+- `house:built` - Huis/hotel gebouwd
 
 ## 🧪 Tech Stack
 
@@ -408,12 +426,77 @@ monopoly-game/
 
 **Conclusie**: Docker is **industry standard** voor moderne development.
 
+## 🌐 Gratis Hosting Opties
+
+### Railway.app (Aanbevolen) ⭐
+**Pro's:**
+- ✅ Gratis $5/maand credit
+- ✅ Docker support (deploy met `docker-compose`)
+- ✅ Automatic HTTPS
+- ✅ Redis addon beschikbaar
+- ✅ WebSocket support
+- ✅ Logs & monitoring
+
+**Setup:**
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login en deploy
+railway login
+railway init
+railway up
+```
+
+### Render.com
+**Pro's:**
+- ✅ Gratis tier (750 uur/maand)
+- ✅ Docker support
+- ✅ Automatic deploys via GitHub
+- ✅ Built-in Redis
+
+**Con's:**
+- ⚠️ Services slapen na 15 min inactiviteit (free tier)
+
+### Fly.io
+**Pro's:**
+- ✅ Gratis voor 3 small VMs
+- ✅ Excellent Docker support
+- ✅ Redis via Upstash (gratis tier)
+- ✅ WebSocket support
+
+**Setup:**
+```bash
+fly launch
+fly redis create
+fly deploy
+```
+
+### Heroku (Met beperkingen)
+**Con's:**
+- ❌ Gratis tier verwijderd (sinds 2022)
+- ℹ️ Wel goedkoop ($5-7/maand voor hobby tier)
+
+### Zelf hosten (VPS)
+**Goedkope opties:**
+- **Hetzner Cloud** - €3.79/maand (CX11)
+- **DigitalOcean** - $6/maand (basic droplet)
+- **Linode** - $5/maand (Nanode)
+
+```bash
+# Op VPS:
+git clone <repo>
+cd monopoly-game
+docker-compose up -d
+```
+
 ## 📝 Development Notes
 
 - Game state is volledig in-memory (geen persistence tussen restarts)
 - WebSocket connecties worden automatisch opnieuw verbonden
 - CORS is geconfigureerd voor local development
 - Alle code bevat uitgebreide comments
+- Voor productie: overweeg Redis persistence (RDB/AOF) voor game recovery
 
 ## 📄 License
 
