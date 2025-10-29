@@ -624,15 +624,15 @@ export default function GamePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   <Users className="w-5 h-5" />
-                  Players ({game?.players.length || 0}/4)
+                  Spelers ({game?.players.length || 0}/4)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {game?.players.length === 0 ? (
                   <div className="text-center py-8 text-gray-900">
                     <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-medium">No players yet</p>
-                    <p className="text-xs mt-1">Waiting for players to join...</p>
+                    <p className="text-sm font-medium">Nog geen spelers</p>
+                    <p className="text-xs mt-1">Wachten op spelers...</p>
                   </div>
                 ) : (
                   game?.players.map((player, idx) => {
@@ -654,7 +654,7 @@ export default function GamePage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-gray-900">{player.name}</p>
-                              {isMe && <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">You</span>}
+                              {isMe && <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">Jij</span>}
                             </div>
                             <p className="text-sm text-gray-900 font-medium">{formatCurrency(player.balance)}</p>
                           </div>
@@ -666,15 +666,15 @@ export default function GamePage() {
               </CardContent>
             </Card>
             
-            {/* Roll Dice */}
+            {/* Dobbelsteen Gooien */}
             {game?.status === 'in_progress' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-gray-900">Your Turn</CardTitle>
+                  <CardTitle className="text-gray-900">Jouw Beurt</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-900 font-medium mb-2">Current Player</p>
+                    <p className="text-sm text-gray-900 font-medium mb-2">Huidige Speler</p>
                     <p className="text-lg font-bold text-gray-900">{currentPlayer?.name}</p>
                   </div>
                   
@@ -684,7 +684,7 @@ export default function GamePage() {
                     className="w-full"
                     size="lg"
                   >
-                    {isRolling ? 'Rolling...' : isMyTurn ? 'Roll Dice' : 'Waiting for turn...'}
+                    {isRolling ? 'Gooien...' : isMyTurn ? 'Gooi Dobbelstenen' : 'Wachten op beurt...'}
                   </Button>
                   
                   {error && <p className="text-sm text-red-600">{error}</p>}
@@ -709,12 +709,12 @@ export default function GamePage() {
               </Card>
             )}
             
-            {/* Game Info */}
+            {/* Spel Info */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900">
                   <DollarSign className="w-5 h-5" />
-                  Game Info
+                  Spel Info
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -723,7 +723,7 @@ export default function GamePage() {
                   <span className="font-bold text-gray-900">{formatCurrency(game?.bank.balance || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">Side Pot:</span>
+                  <span className="text-sm font-semibold text-gray-900">Pot:</span>
                   <span className="font-bold text-gray-900">{formatCurrency(game?.sidePot.balance || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -826,7 +826,7 @@ export default function GamePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5" />
-                  Game Board
+                  Speelbord
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -875,25 +875,54 @@ export default function GamePage() {
                         );
                       }
                       
-                      // Find tile data
-                      const tile = BOARD_TILES.find(t => t.pos === tilePos);
-                      if (!tile) return <div key={idx} className="bg-gray-200" />;
-                      
-                      // Find players on this tile
-                      const playersHere = game?.players.filter(p => p.position === tilePos) || [];
-                      
-                      return (
-                        <div
-                          key={idx}
-                          className={`
-                            ${tile.type === 'corner' ? 'col-span-1 row-span-1' : ''}
-                            ${tile.color} 
-                            rounded border border-gray-300 
-                            flex flex-col items-center justify-center
-                            relative overflow-hidden
-                            ${playersHere.length > 0 ? 'ring-2 ring-yellow-400' : ''}
-                          `}
-                        >
+                          // Find tile data
+                          const tile = BOARD_TILES.find(t => t.pos === tilePos);
+                          if (!tile) return <div key={idx} className="bg-gray-200" />;
+                          
+                          // Find players on this tile
+                          const playersHere = game?.players.filter(p => p.position === tilePos) || [];
+                          
+                          // Find tile data from game state to check ownership
+                          const gameTile = game?.board?.tiles[tilePos];
+                          const owner = gameTile?.ownerId 
+                            ? game?.players.find(p => p.id === gameTile.ownerId)
+                            : null;
+                          const ownerToken = owner 
+                            ? PLAYER_TOKENS.find(t => t.value === owner.token)
+                            : null;
+                          
+                          // Create tooltip with tile info
+                          const tileInfo = `Positie ${tilePos}: ${tile.name}${
+                            owner ? `\n🏠 Eigenaar: ${owner.name}` : ''
+                          }${
+                            gameTile?.type === 'property' ? `\n💰 Huur: €${gameTile.rent || 0}` : ''
+                          }`;
+                          
+                          return (
+                            <div
+                              key={idx}
+                              className={`
+                                ${tile.type === 'corner' ? 'col-span-1 row-span-1' : ''}
+                                ${tile.color} 
+                                rounded border border-gray-300 
+                                flex flex-col items-center justify-center
+                                relative overflow-hidden
+                                ${playersHere.length > 0 ? 'ring-2 ring-yellow-400' : ''}
+                                ${owner ? 'ring-2 ring-green-500' : ''}
+                                cursor-help transition-all hover:scale-105 hover:z-10
+                              `}
+                              title={tileInfo}
+                            >
+                          {/* Owner badge (top right corner) */}
+                          {owner && ownerToken && (
+                            <div 
+                              className="absolute top-0 right-0 bg-green-500 rounded-bl-lg px-1 text-xs border-l border-b border-white"
+                              title={`Eigenaar: ${owner.name}`}
+                            >
+                              {ownerToken.emoji}
+                            </div>
+                          )}
+                          
                           {/* Tile name */}
                           <div className="text-[0.5rem] font-bold text-white text-center px-0.5 drop-shadow-md">
                             {tile.name}
@@ -904,15 +933,18 @@ export default function GamePage() {
                             <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-0.5 pb-0.5">
                               {playersHere.map(player => {
                                 const token = PLAYER_TOKENS.find(t => t.value === player.token);
+                                const isMe = player.id === currentPlayerId;
+                                const isTurn = player.id === currentPlayer?.id;
                                 return (
                                   <div
                                     key={player.id}
                                     className={`
                                       text-lg bg-white rounded-full w-5 h-5 flex items-center justify-center border
-                                      ${player.id === currentPlayerId ? 'border-blue-500 border-2' : 'border-gray-300'}
-                                      ${player.id === currentPlayer?.id ? 'ring-2 ring-yellow-400' : ''}
+                                      cursor-help transition-transform hover:scale-150 hover:z-50
+                                      ${isMe ? 'border-blue-500 border-2' : 'border-gray-300'}
+                                      ${isTurn ? 'ring-2 ring-yellow-400' : ''}
                                     `}
-                                    title={player.name}
+                                    title={`${player.name} - ${formatCurrency(player.balance)}${isMe ? ' (Jij)' : ''}${isTurn ? ' (Aan de beurt)' : ''}`}
                                   >
                                     <span className="text-xs">{token?.emoji || '❓'}</span>
                                   </div>
@@ -934,17 +966,17 @@ export default function GamePage() {
                   </div>
                 </div>
                 
-                {/* Last Turn Result */}
+                {/* Laatste Beurt Resultaat */}
                 {lastTurnResult && (
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="font-semibold text-gray-900 mb-2">Last Turn:</p>
+                    <p className="font-semibold text-gray-900 mb-2">Laatste Beurt:</p>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-900 font-medium">Dice:</span>
+                        <span className="text-gray-900 font-medium">Dobbelstenen:</span>
                         <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.dice.dice1} + {lastTurnResult.dice.dice2} = {lastTurnResult.dice.total}</span>
                       </div>
                       <div>
-                        <span className="text-gray-900 font-medium">Moved:</span>
+                        <span className="text-gray-900 font-medium">Verplaatst:</span>
                         <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.movement.oldPosition} → {lastTurnResult.movement.newPosition}</span>
                       </div>
                       <div className="col-span-2">
