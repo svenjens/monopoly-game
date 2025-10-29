@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\TileType;
+
 /**
  * Chance Tile
  * 
