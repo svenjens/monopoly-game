@@ -61,6 +61,16 @@ class Player
     private bool $isActive;
 
     /**
+     * Whether this player is currently in jail.
+     */
+    private bool $inJail = false;
+
+    /**
+     * Number of turns the player has been in jail.
+     */
+    private int $jailTurns = 0;
+
+    /**
      * Initialize a new player.
      * 
      * @param string $name Player's name
@@ -226,6 +236,54 @@ class Player
     public function setActive(bool $isActive): void
     {
         $this->isActive = $isActive;
+    }
+
+    /**
+     * Check if the player is currently in jail.
+     */
+    public function isInJail(): bool
+    {
+        return $this->inJail;
+    }
+
+    /**
+     * Set the player's jail status.
+     * 
+     * @param bool $inJail Whether the player is in jail
+     */
+    public function setInJail(bool $inJail): void
+    {
+        $this->inJail = $inJail;
+        
+        // Reset jail turns when released
+        if (!$inJail) {
+            $this->jailTurns = 0;
+        }
+    }
+
+    /**
+     * Get the number of turns the player has been in jail.
+     */
+    public function getJailTurns(): int
+    {
+        return $this->jailTurns;
+    }
+
+    /**
+     * Increment the jail turn counter.
+     */
+    public function incrementJailTurns(): void
+    {
+        $this->jailTurns++;
+    }
+
+    /**
+     * Release the player from jail.
+     */
+    public function releaseFromJail(): void
+    {
+        $this->inJail = false;
+        $this->jailTurns = 0;
     }
 }
 

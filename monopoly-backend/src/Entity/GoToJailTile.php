@@ -32,7 +32,7 @@ class GoToJailTile extends Tile
 
     /**
      * Handle player landing on Go To Jail.
-     * Player is immediately moved to the Jail position.
+     * Player is immediately moved to the Jail position and marked as in jail.
      * 
      * @param Game $game The current game instance
      * @param Player $player The player who landed on Go To Jail
@@ -40,13 +40,15 @@ class GoToJailTile extends Tile
      */
     public function onLand(Game $game, Player $player): array
     {
-        // Move player directly to jail
+        // Move player directly to jail and set jail status
         $player->setPosition(self::JAIL_POSITION);
+        $player->setInJail(true);
 
         return [
             'action' => 'sent_to_jail',
             'amount' => 0,
             'newPosition' => self::JAIL_POSITION,
+            'inJail' => true,
             'message' => sprintf('%s was sent to Jail!', $player->getName()),
         ];
     }

@@ -37,6 +37,8 @@ export interface Player {
   railroadCount: number;
   utilityCount: number;
   isActive: boolean;
+  inJail: boolean;
+  jailTurns: number;
 }
 
 /**

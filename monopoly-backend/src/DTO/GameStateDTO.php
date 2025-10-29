@@ -53,6 +53,8 @@ class GameStateDTO
                 'railroadCount' => $player->getRailroadCount(),
                 'utilityCount' => $player->getUtilityCount(),
                 'isActive' => $player->isActive(),
+                'inJail' => $player->isInJail(),
+                'jailTurns' => $player->getJailTurns(),
             ];
         }, $game->getPlayers());
 
