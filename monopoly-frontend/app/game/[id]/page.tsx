@@ -967,12 +967,10 @@ export default function GamePage() {
                           const playersHere = game?.players.filter(p => p.position === tilePos) || [];
                           
                           // Find tile data from game state to check ownership
-                          // tiles is an object with position as key, not an array
-                          const gameTile = game?.board?.tiles 
-                            ? (game.board.tiles as any)[tilePos.toString()]
-                            : null;
-                          const owner = gameTile?.ownerId 
-                            ? game?.players.find(p => p.id === gameTile.ownerId)
+                          // board is an array of tiles
+                          const gameTile = game?.board?.find((t: any) => t.position === tilePos);
+                          const owner = gameTile?.owner 
+                            ? game?.players.find(p => p.id === gameTile.owner)
                             : null;
                           const ownerToken = owner 
                             ? PLAYER_TOKENS.find(t => t.value === owner.token)
