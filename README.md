@@ -426,77 +426,12 @@ monopoly-game/
 
 **Conclusie**: Docker is **industry standard** voor moderne development.
 
-## 🌐 Gratis Hosting Opties
-
-### Railway.app (Aanbevolen) ⭐
-**Pro's:**
-- ✅ Gratis $5/maand credit
-- ✅ Docker support (deploy met `docker-compose`)
-- ✅ Automatic HTTPS
-- ✅ Redis addon beschikbaar
-- ✅ WebSocket support
-- ✅ Logs & monitoring
-
-**Setup:**
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login en deploy
-railway login
-railway init
-railway up
-```
-
-### Render.com
-**Pro's:**
-- ✅ Gratis tier (750 uur/maand)
-- ✅ Docker support
-- ✅ Automatic deploys via GitHub
-- ✅ Built-in Redis
-
-**Con's:**
-- ⚠️ Services slapen na 15 min inactiviteit (free tier)
-
-### Fly.io
-**Pro's:**
-- ✅ Gratis voor 3 small VMs
-- ✅ Excellent Docker support
-- ✅ Redis via Upstash (gratis tier)
-- ✅ WebSocket support
-
-**Setup:**
-```bash
-fly launch
-fly redis create
-fly deploy
-```
-
-### Heroku (Met beperkingen)
-**Con's:**
-- ❌ Gratis tier verwijderd (sinds 2022)
-- ℹ️ Wel goedkoop ($5-7/maand voor hobby tier)
-
-### Zelf hosten (VPS)
-**Goedkope opties:**
-- **Hetzner Cloud** - €3.79/maand (CX11)
-- **DigitalOcean** - $6/maand (basic droplet)
-- **Linode** - $5/maand (Nanode)
-
-```bash
-# Op VPS:
-git clone <repo>
-cd monopoly-game
-docker-compose up -d
-```
-
 ## 📝 Development Notes
 
 - Game state is volledig in-memory (geen persistence tussen restarts)
 - WebSocket connecties worden automatisch opnieuw verbonden
 - CORS is geconfigureerd voor local development
 - Alle code bevat uitgebreide comments
-- Voor productie: overweeg Redis persistence (RDB/AOF) voor game recovery
 
 ## 📄 License
 
