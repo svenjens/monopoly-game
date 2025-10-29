@@ -429,6 +429,119 @@ class GameController extends AbstractController
     }
 
     /**
+     * Build a house on a property.
+     * 
+     * POST /api/games/{id}/build-house
+     * Body: { "position": 1 }
+     * 
+     * @param string $id Game identifier
+     * @return JsonResponse Result with updated game state
+     */
+    #[Route('/{id}/build-house', name: 'build_house', methods: ['POST'])]
+    public function buildHouse(string $id, Request $request): JsonResponse
+    {
+        $game = $this->gameRepository->find($id);
+
+        if (!$game) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Game not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $data = json_decode($request->getContent(), true);
+            $position = $data['position'] ?? null;
+
+            if ($position === null) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Position is required',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $player = $game->getCurrentPlayer();
+            $tile = $game->getBoard()->getTile($position);
+
+            // Check if tile is a property
+            if (!$tile instanceof \App\Entity\PropertyTile) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'This is not a buildable property',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Check if player owns this property
+            if ($tile->getOwner() !== $player) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'You do not own this property',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Check if building is allowed
+            if (!$tile->canBuildHouse($game)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Cannot build house (need monopoly or max houses reached)',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Check if player can afford it
+            $buildCost = $tile->getBuildCost();
+            if ($player->getBalance() < $buildCost) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Insufficient funds',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            // Build the house
+            $player->deductBalance($buildCost);
+            $game->getBank()->addBalance($buildCost);
+            $tile->buildHouse();
+
+            $this->gameRepository->save($game);
+
+            // Build response
+            $gameState = GameStateDTO::fromGame($game);
+
+            $buildResult = [
+                'position' => $position,
+                'propertyName' => $tile->getName(),
+                'houses' => $tile->getHouses(),
+                'cost' => $buildCost,
+                'message' => $tile->hasHotel() 
+                    ? sprintf('%s bouwde een hotel op %s voor €%s', $player->getName(), $tile->getName(), number_format($buildCost, 0, ',', '.'))
+                    : sprintf('%s bouwde huis #%d op %s voor €%s', $player->getName(), $tile->getHouses(), $tile->getName(), number_format($buildCost, 0, ',', '.')),
+            ];
+
+            // Broadcast house:built event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'house:built',
+                [
+                    'build' => $buildResult,
+                    'gameState' => $gameState->toArray(),
+                ]
+            );
+
+            return $this->json([
+                'success' => true,
+                'data' => [
+                    'build' => $buildResult,
+                    'gameState' => $gameState->toArray(),
+                ],
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    /**
      * End a game.
      * 
      * POST /api/games/{id}/end

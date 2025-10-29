@@ -88,6 +88,12 @@ class GameStateDTO
                 $owner = $tile->getOwner();
                 $tileData['owner'] = $owner ? $owner->getId() : null;
             }
+            if (method_exists($tile, 'getHouses')) {
+                $tileData['houses'] = $tile->getHouses();
+            }
+            if (method_exists($tile, 'getBuildCost')) {
+                $tileData['buildCost'] = $tile->getBuildCost();
+            }
 
             return $tileData;
         }, $game->getBoard()->getTiles());
