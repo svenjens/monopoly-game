@@ -5,30 +5,60 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Game;
+use Predis\Client as RedisClient;
 
 /**
  * Game Repository
  * 
- * In-memory storage for active games.
- * Stores games in a PHP array (singleton service).
+ * In-memory storage for active games using Redis.
+ * Redis allows data to persist across PHP requests and can be shared
+ * between multiple processes (API + WebSocket).
  * 
- * Note: All data is lost when the application restarts.
- * For production, consider using Redis or similar for persistence.
+ * Note: All data is lost when Redis restarts.
+ * For production, consider using Redis persistence (RDB/AOF).
  */
 class GameRepository
 {
     /**
-     * Storage for active games.
-     * Key: game ID, Value: Game entity
-     * 
-     * @var array<string, Game>
+     * Redis key prefix for games.
      */
-    private array $games = [];
+    private const CACHE_PREFIX = 'monopoly:game:';
+    
+    /**
+     * Redis key for the games index (set of all game IDs).
+     */
+    private const INDEX_KEY = 'monopoly:games:index';
 
     /**
      * Cleanup threshold - games inactive for this long are removed (in seconds).
      */
     private const CLEANUP_THRESHOLD = 7200; // 2 hours
+    
+    /**
+     * TTL for Redis cache entries (in seconds).
+     */
+    private const CACHE_TTL = 7200; // 2 hours
+
+    /**
+     * Redis client instance.
+     */
+    private RedisClient $redis;
+
+    /**
+     * Initialize repository with Redis connection.
+     */
+    public function __construct()
+    {
+        // Connect to Redis (via Docker network or localhost)
+        $redisHost = getenv('REDIS_HOST') ?: 'redis';
+        $redisPort = getenv('REDIS_PORT') ?: 6379;
+        
+        $this->redis = new RedisClient([
+            'scheme' => 'tcp',
+            'host' => $redisHost,
+            'port' => $redisPort,
+        ]);
+    }
 
     /**
      * Save a game to the repository.
@@ -37,7 +67,15 @@ class GameRepository
      */
     public function save(Game $game): void
     {
-        $this->games[$game->getId()] = $game;
+        // Serialize and store the game with TTL
+        $serialized = serialize($game);
+        $key = self::CACHE_PREFIX . $game->getId();
+        
+        $this->redis->setex($key, self::CACHE_TTL, $serialized);
+        
+        // Add to index
+        $this->redis->sadd(self::INDEX_KEY, [$game->getId()]);
+        $this->redis->expire(self::INDEX_KEY, self::CACHE_TTL);
     }
 
     /**
@@ -48,7 +86,14 @@ class GameRepository
      */
     public function find(string $id): ?Game
     {
-        return $this->games[$id] ?? null;
+        $key = self::CACHE_PREFIX . $id;
+        $serialized = $this->redis->get($key);
+        
+        if ($serialized === null) {
+            return null;
+        }
+        
+        return unserialize($serialized);
     }
 
     /**
@@ -58,7 +103,17 @@ class GameRepository
      */
     public function findAll(): array
     {
-        return array_values($this->games);
+        $games = [];
+        $gameIds = $this->redis->smembers(self::INDEX_KEY);
+        
+        foreach ($gameIds as $id) {
+            $game = $this->find($id);
+            if ($game !== null) {
+                $games[] = $game;
+            }
+        }
+        
+        return $games;
     }
 
     /**
@@ -68,7 +123,9 @@ class GameRepository
      */
     public function delete(string $id): void
     {
-        unset($this->games[$id]);
+        $key = self::CACHE_PREFIX . $id;
+        $this->redis->del([$key]);
+        $this->redis->srem(self::INDEX_KEY, $id);
     }
 
     /**
@@ -79,7 +136,8 @@ class GameRepository
      */
     public function exists(string $id): bool
     {
-        return isset($this->games[$id]);
+        $key = self::CACHE_PREFIX . $id;
+        return $this->redis->exists($key) > 0;
     }
 
     /**
@@ -87,14 +145,15 @@ class GameRepository
      */
     public function count(): int
     {
-        return count($this->games);
+        return $this->redis->scard(self::INDEX_KEY);
     }
 
     /**
      * Clean up inactive games.
      * Removes games that haven't had activity in the last 2 hours.
      * 
-     * This should be called periodically (e.g., via a cron job or middleware).
+     * Note: With Redis TTL, this is mostly automatic, but we can
+     * manually remove old entries from the index.
      * 
      * @return int Number of games removed
      */
@@ -102,13 +161,22 @@ class GameRepository
     {
         $now = new \DateTimeImmutable();
         $removed = 0;
+        $gameIds = $this->redis->smembers(self::INDEX_KEY);
 
-        foreach ($this->games as $id => $game) {
-            $inactiveSeconds = $now->getTimestamp() - $game->getLastActivityAt()->getTimestamp();
+        foreach ($gameIds as $id) {
+            $game = $this->find($id);
             
-            if ($inactiveSeconds > self::CLEANUP_THRESHOLD) {
-                unset($this->games[$id]);
+            // If game doesn't exist (expired) or is too old, remove from index
+            if ($game === null) {
+                $this->redis->srem(self::INDEX_KEY, $id);
                 $removed++;
+            } elseif (method_exists($game, 'getLastActivityAt')) {
+                $inactiveSeconds = $now->getTimestamp() - $game->getLastActivityAt()->getTimestamp();
+                
+                if ($inactiveSeconds > self::CLEANUP_THRESHOLD) {
+                    $this->delete($id);
+                    $removed++;
+                }
             }
         }
 
@@ -123,8 +191,10 @@ class GameRepository
      */
     public function findByStatus(\App\Enum\GameStatus $status): array
     {
+        $games = $this->findAll();
+        
         return array_filter(
-            $this->games,
+            $games,
             fn(Game $game) => $game->getStatus() === $status
         );
     }

@@ -83,16 +83,19 @@ export default function GamePage() {
   /**
    * Load game data from API with retry logic.
    */
-  const loadGame = async (retryCount = 3) => {
-    setLoading(true);
-    setError(null);
-    let shouldRetry = false;
+  const loadGame = async (retryCount = 8) => {
+    // Only set loading on first attempt
+    if (retryCount === 8) {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
       const response = await getGame(gameId);
       
       if (response.success && response.data) {
         setGame(response.data);
+        setLoading(false);
         
         // Show join dialog if not already in game
         if (!currentPlayerId && response.data.status === 'waiting') {
@@ -101,17 +104,22 @@ export default function GamePage() {
       } else {
         const errorMsg = response.error || 'Kon spel niet laden';
         
-        // If game not found and we have retries left, try again after a short delay
+        // If game not found and we have retries left, try again after a delay
         // This handles the case where a game was just created
         if ((errorMsg.includes('niet gevonden') || errorMsg.includes('not found')) && retryCount > 0) {
-          shouldRetry = true;
-          console.log(`Game not found, retrying... (${retryCount} attempts left)`);
+          // Exponential backoff: 300ms, 600ms, 1200ms, etc. Max 3s
+          const delay = Math.min(300 * Math.pow(2, 8 - retryCount), 3000);
+          
+          console.log(`Game not found, retrying in ${delay}ms... (${retryCount} attempts left)`);
+          
+          // Keep loading state active during retry
           setTimeout(() => {
             loadGame(retryCount - 1);
-          }, 500); // Wait 500ms before retry
+          }, delay);
           return;
         }
         
+        // No more retries - show error
         setError(errorMsg);
         setLoading(false);
       }
@@ -120,7 +128,6 @@ export default function GamePage() {
       
       // Retry on network errors
       if (retryCount > 0) {
-        shouldRetry = true;
         console.log(`Network error, retrying... (${retryCount} attempts left)`);
         setTimeout(() => {
           loadGame(retryCount - 1);
@@ -128,14 +135,10 @@ export default function GamePage() {
         return;
       }
       
+      // No more retries - show error
       setError(errorMsg);
       toast.error(errorMsg);
       setLoading(false);
-    } finally {
-      // Only set loading to false if we're not retrying
-      if (!shouldRetry && retryCount === 0) {
-        setLoading(false);
-      }
     }
   };
   
