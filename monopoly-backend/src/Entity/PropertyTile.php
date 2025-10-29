@@ -36,7 +36,7 @@ class PropertyTile extends Tile
     /**
      * The cost to build one house on this property.
      */
-    private int $buildCost;
+    private int $buildCost = 50;
 
     /**
      * The number of houses on this property (0-4).
