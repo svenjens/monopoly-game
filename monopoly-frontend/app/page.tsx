@@ -96,7 +96,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50">
       <div className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
@@ -110,7 +110,7 @@ export default function Home() {
             Monopoly
           </h1>
           
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-700 max-w-2xl mx-auto">
             Een moderne, vereenvoudigde versie van het klassieke bordspel.
             Speel real-time met 2-4 spelers!
           </p>
@@ -184,9 +184,9 @@ export default function Home() {
         {/* Error Message */}
         {error && (
           <div className="max-w-4xl mx-auto mt-6">
-            <Card className="border-red-300 bg-red-50 dark:bg-red-900/20">
+            <Card className="border-red-300 bg-red-50">
               <CardContent className="pt-6">
-                <p className="text-red-600 dark:text-red-400 text-center">
+                <p className="text-red-700 font-medium text-center">
                   {error}
                 </p>
               </CardContent>
@@ -205,21 +205,21 @@ export default function Home() {
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">1</div>
                   <h3 className="font-semibold mb-1">Maak een Spel</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-700">
                     Start een nieuw spel en ontvang een unieke Game ID
                   </p>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">2</div>
                   <h3 className="font-semibold mb-1">Voeg Spelers Toe</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-700">
                     Deel de Game ID met vrienden (2-4 spelers)
                   </p>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">3</div>
                   <h3 className="font-semibold mb-1">Speel!</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-700">
                     Gooi de dobbelstenen en bouw jouw monopolie
                   </p>
                 </div>
