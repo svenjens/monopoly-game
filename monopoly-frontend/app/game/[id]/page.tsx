@@ -548,9 +548,12 @@ export default function GamePage() {
         
         // Dice roll
         if (turnResult.dice) {
+          const dice = turnResult.dice;
+          const d1 = Array.isArray(dice) ? dice[0] : dice.dice1;
+          const d2 = Array.isArray(dice) ? dice[1] : dice.dice2;
           addToGameLog(
             'dice',
-            `🎲 ${player.name} gooide ${turnResult.dice[0]} + ${turnResult.dice[1]} = ${turnResult.dice[0] + turnResult.dice[1]}`,
+            `🎲 ${player.name} gooide ${d1} + ${d2} = ${d1 + d2}`,
             player.id,
             player.name
           );
@@ -611,9 +614,10 @@ export default function GamePage() {
               player.name
             );
           } else if (tile.action === 'rent_paid') {
+            const ownerName = tile.ownerName || tile.beneficiary || 'speler';
             addToGameLog(
               'rent',
-              `💰 ${player.name} betaalde €${tile.amount} huur aan ${tile.ownerName}`,
+              `💰 ${player.name} betaalde €${tile.amount} huur aan ${ownerName}`,
               player.id,
               player.name
             );
