@@ -81,18 +81,30 @@ export default function GamePage() {
   }, [nameFromUrl, game, currentPlayerId]);
 
   /**
-   * Poll for game updates when waiting for players.
-   * This ensures the first player sees when others join.
+   * Poll for game updates.
+   * - During 'waiting': every 3 seconds to see new players joining
+   * - During 'in_progress': every 2 seconds to see turn updates
    */
   useEffect(() => {
-    if (!game || game.status !== 'waiting') return;
+    if (!game) return;
     
-    const pollInterval = setInterval(() => {
-      console.log('Polling for game updates (waiting for players)...');
-      loadGame();
-    }, 3000); // Poll every 3 seconds
+    let pollInterval: NodeJS.Timeout;
     
-    return () => clearInterval(pollInterval);
+    if (game.status === 'waiting') {
+      pollInterval = setInterval(() => {
+        console.log('Polling for game updates (waiting for players)...');
+        loadGame();
+      }, 3000);
+    } else if (game.status === 'in_progress') {
+      pollInterval = setInterval(() => {
+        console.log('Polling for game updates (in progress)...');
+        loadGame();
+      }, 2000); // Faster polling during active game
+    }
+    
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [game?.status]);
   
   /**
@@ -270,10 +282,15 @@ export default function GamePage() {
         setLastTurnResult(response.data);
         setGame(response.data.gameState);
         
-        // Show dice roll result
+        // Show dice roll result (defensive programming)
         const dice = response.data.dice;
-        if (dice) {
-          toast.info(`🎲 Gegooid: ${dice[0]} + ${dice[1]} = ${dice[0] + dice[1]}`);
+        if (dice && Array.isArray(dice) && dice.length === 2) {
+          const total = dice[0] + dice[1];
+          toast.info(`🎲 Gegooid: ${dice[0]} + ${dice[1]} = ${total}`);
+        } else {
+          // Fallback if dice data is missing
+          console.warn('Dice data missing or invalid:', dice);
+          toast.info('🎲 Dobbelstenen gegooid!');
         }
         
         // Reset rolling after animation
