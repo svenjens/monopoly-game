@@ -15,7 +15,7 @@ export const ValidationPatterns = {
   gameId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
   
   // Token: Only allow specific tokens
-  token: /^(car|dog|ship|hat|shoe|thimble|cat|penguin)$/,
+  token: /^(boot|car|ship|thimble|hat|dog|wheelbarrow|iron)$/,
 };
 
 /**
