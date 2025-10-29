@@ -27,6 +27,53 @@ import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy } f
 // Dynamic import for Confetti (client-side only)
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
+/**
+ * Monopoly Board Tile Names (simplified)
+ * 40 tiles arranged clockwise from position 0 (GO)
+ */
+const BOARD_TILES = [
+  { pos: 0, name: 'GO', color: 'bg-red-500', type: 'corner' },
+  { pos: 1, name: 'Straat 1', color: 'bg-amber-700' },
+  { pos: 2, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 3, name: 'Straat 2', color: 'bg-amber-700' },
+  { pos: 4, name: 'Belasting', color: 'bg-gray-400' },
+  { pos: 5, name: 'Station 1', color: 'bg-black' },
+  { pos: 6, name: 'Straat 3', color: 'bg-blue-400' },
+  { pos: 7, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 8, name: 'Straat 4', color: 'bg-blue-400' },
+  { pos: 9, name: 'Straat 5', color: 'bg-blue-400' },
+  { pos: 10, name: 'Gevangenis', color: 'bg-orange-500', type: 'corner' },
+  { pos: 11, name: 'Straat 6', color: 'bg-purple-600' },
+  { pos: 12, name: 'Nuts', color: 'bg-yellow-300' },
+  { pos: 13, name: 'Straat 7', color: 'bg-purple-600' },
+  { pos: 14, name: 'Straat 8', color: 'bg-purple-600' },
+  { pos: 15, name: 'Station 2', color: 'bg-black' },
+  { pos: 16, name: 'Straat 9', color: 'bg-orange-600' },
+  { pos: 17, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 18, name: 'Straat 10', color: 'bg-orange-600' },
+  { pos: 19, name: 'Straat 11', color: 'bg-orange-600' },
+  { pos: 20, name: 'Parkeren', color: 'bg-red-500', type: 'corner' },
+  { pos: 21, name: 'Straat 12', color: 'bg-red-600' },
+  { pos: 22, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 23, name: 'Straat 13', color: 'bg-red-600' },
+  { pos: 24, name: 'Straat 14', color: 'bg-red-600' },
+  { pos: 25, name: 'Station 3', color: 'bg-black' },
+  { pos: 26, name: 'Straat 15', color: 'bg-yellow-500' },
+  { pos: 27, name: 'Straat 16', color: 'bg-yellow-500' },
+  { pos: 28, name: 'Nuts', color: 'bg-yellow-300' },
+  { pos: 29, name: 'Straat 17', color: 'bg-yellow-500' },
+  { pos: 30, name: '→ Gevangenis', color: 'bg-orange-500', type: 'corner' },
+  { pos: 31, name: 'Straat 18', color: 'bg-green-600' },
+  { pos: 32, name: 'Straat 19', color: 'bg-green-600' },
+  { pos: 33, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 34, name: 'Straat 20', color: 'bg-green-600' },
+  { pos: 35, name: 'Station 4', color: 'bg-black' },
+  { pos: 36, name: 'Kans', color: 'bg-orange-300' },
+  { pos: 37, name: 'Straat 21', color: 'bg-blue-900' },
+  { pos: 38, name: 'Belasting', color: 'bg-gray-400' },
+  { pos: 39, name: 'Straat 22', color: 'bg-blue-900' },
+];
+
 export default function GamePage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -777,49 +824,107 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Simplified board visualization with player positions */}
-                <div className="aspect-square bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-4 relative">
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center">
-                      <p className="text-4xl font-bold text-green-800 mb-1">MONOPOLY</p>
-                      <p className="text-sm text-green-700">Vereenvoudigde Versie</p>
-                    </div>
-                  </div>
-                  
-                  {/* Player positions around the board */}
-                  <div className="relative w-full h-full">
-                    {game?.players.map((player) => {
-                      const token = PLAYER_TOKENS.find(t => t.value === player.token);
-                      // Calculate position on circular board (0-39 positions)
-                      const angle = (player.position / 40) * 360;
-                      const radius = 42; // Distance from center (percentage)
-                      const x = 50 + radius * Math.cos((angle - 90) * Math.PI / 180);
-                      const y = 50 + radius * Math.sin((angle - 90) * Math.PI / 180);
+                {/* Monopoly Board - Square layout with 40 tiles */}
+                <div className="aspect-square bg-green-100 rounded-lg p-2 relative">
+                  {/* Board Grid: 11x11 */}
+                  <div className="grid grid-cols-11 grid-rows-11 gap-1 h-full">
+                    {/* Generate all 121 cells */}
+                    {Array.from({ length: 121 }).map((_, idx) => {
+                      const row = Math.floor(idx / 11);
+                      const col = idx % 11;
+                      
+                      // Determine if this is a board tile or center area
+                      let tilePos = -1;
+                      let isCorner = false;
+                      
+                      // Bottom row (positions 0-10, right to left)
+                      if (row === 10) {
+                        tilePos = 10 - col;
+                        isCorner = col === 0 || col === 10;
+                      }
+                      // Left column (positions 11-19, bottom to top)
+                      else if (col === 0 && row > 0 && row < 10) {
+                        tilePos = 10 + (10 - row);
+                      }
+                      // Top row (positions 20-30, left to right)
+                      else if (row === 0) {
+                        tilePos = 20 + col;
+                        isCorner = col === 0 || col === 10;
+                      }
+                      // Right column (positions 31-39, top to bottom)
+                      else if (col === 10 && row > 0 && row < 10) {
+                        tilePos = 30 + row;
+                      }
+                      
+                      // Center area (not a tile)
+                      if (tilePos === -1) {
+                        return (
+                          <div key={idx} className="bg-green-200 rounded flex items-center justify-center">
+                            {row === 5 && col === 5 && (
+                              <div className="text-center">
+                                <p className="text-lg font-bold text-green-800">🎲</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      
+                      // Find tile data
+                      const tile = BOARD_TILES.find(t => t.pos === tilePos);
+                      if (!tile) return <div key={idx} className="bg-gray-200" />;
+                      
+                      // Find players on this tile
+                      const playersHere = game?.players.filter(p => p.position === tilePos) || [];
                       
                       return (
                         <div
-                          key={player.id}
-                          className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                          style={{
-                            left: `${x}%`,
-                            top: `${y}%`,
-                          }}
+                          key={idx}
+                          className={`
+                            ${tile.type === 'corner' ? 'col-span-1 row-span-1' : ''}
+                            ${tile.color} 
+                            rounded border border-gray-300 
+                            flex flex-col items-center justify-center
+                            relative overflow-hidden
+                            ${playersHere.length > 0 ? 'ring-2 ring-yellow-400' : ''}
+                          `}
                         >
-                          <div className={`
-                            bg-white rounded-full p-2 shadow-lg border-2 transition-all
-                            ${player.id === currentPlayerId ? 'border-blue-500 scale-110' : 'border-gray-300'}
-                            ${player.id === currentPlayer?.id ? 'ring-4 ring-yellow-400' : ''}
-                          `}>
-                            <span className="text-2xl">{token?.emoji || '❓'}</span>
+                          {/* Tile name */}
+                          <div className="text-[0.5rem] font-bold text-white text-center px-0.5 drop-shadow-md">
+                            {tile.name}
                           </div>
-                          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                            <span className="text-xs font-bold text-gray-900 bg-white/90 px-2 py-0.5 rounded">
-                              {player.position}
-                            </span>
-                          </div>
+                          
+                          {/* Players on this tile */}
+                          {playersHere.length > 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-0.5 pb-0.5">
+                              {playersHere.map(player => {
+                                const token = PLAYER_TOKENS.find(t => t.value === player.token);
+                                return (
+                                  <div
+                                    key={player.id}
+                                    className={`
+                                      text-lg bg-white rounded-full w-5 h-5 flex items-center justify-center border
+                                      ${player.id === currentPlayerId ? 'border-blue-500 border-2' : 'border-gray-300'}
+                                      ${player.id === currentPlayer?.id ? 'ring-2 ring-yellow-400' : ''}
+                                    `}
+                                    title={player.name}
+                                  >
+                                    <span className="text-xs">{token?.emoji || '❓'}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+                  </div>
+                  
+                  {/* Center Logo */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center bg-green-200/80 rounded-lg p-4">
+                      <p className="text-2xl font-bold text-green-800">MONOPOLY</p>
+                      <p className="text-xs text-green-700">Vereenvoudigde Versie</p>
+                    </div>
                   </div>
                 </div>
                 
