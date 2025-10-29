@@ -110,7 +110,7 @@ export default function Home() {
             Monopoly
           </h1>
           
-          <p className="text-xl text-gray-700 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-900 max-w-2xl mx-auto">
             Een moderne, vereenvoudigde versie van het klassieke bordspel.
             Speel real-time met 2-4 spelers!
           </p>
@@ -204,22 +204,22 @@ export default function Home() {
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">1</div>
-                  <h3 className="font-semibold mb-1">Maak een Spel</h3>
-                  <p className="text-sm text-gray-700">
+                  <h3 className="font-semibold text-gray-900 mb-1">Maak een Spel</h3>
+                  <p className="text-sm text-gray-900">
                     Start een nieuw spel en ontvang een unieke Game ID
                   </p>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">2</div>
-                  <h3 className="font-semibold mb-1">Voeg Spelers Toe</h3>
-                  <p className="text-sm text-gray-700">
+                  <h3 className="font-semibold text-gray-900 mb-1">Voeg Spelers Toe</h3>
+                  <p className="text-sm text-gray-900">
                     Deel de Game ID met vrienden (2-4 spelers)
                   </p>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">3</div>
-                  <h3 className="font-semibold mb-1">Speel!</h3>
-                  <p className="text-sm text-gray-700">
+                  <h3 className="font-semibold text-gray-900 mb-1">Speel!</h3>
+                  <p className="text-sm text-gray-900">
                     Gooi de dobbelstenen en bouw jouw monopolie
                   </p>
                 </div>

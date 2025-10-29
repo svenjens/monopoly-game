@@ -406,7 +406,7 @@ export default function GamePage() {
             <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Monopoly
             </h1>
-            <p className="text-sm text-gray-600">Game ID: {gameId}</p>
+            <p className="text-sm text-gray-900 font-medium">Game ID: {gameId}</p>
           </div>
           
           <div className="flex items-center gap-2">
@@ -437,9 +437,9 @@ export default function GamePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {game?.players.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">No players yet</p>
+                  <div className="text-center py-8 text-gray-900">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm font-medium">No players yet</p>
                     <p className="text-xs mt-1">Waiting for players to join...</p>
                   </div>
                 ) : (
@@ -464,7 +464,7 @@ export default function GamePage() {
                               <p className="font-semibold text-gray-900">{player.name}</p>
                               {isMe && <span className="text-xs bg-primary text-white px-2 py-0.5 rounded">You</span>}
                             </div>
-                            <p className="text-sm text-gray-600">{formatCurrency(player.balance)}</p>
+                            <p className="text-sm text-gray-900 font-medium">{formatCurrency(player.balance)}</p>
                           </div>
                         </div>
                       </div>
@@ -482,7 +482,7 @@ export default function GamePage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Current Player</p>
+                    <p className="text-sm text-gray-900 font-medium mb-2">Current Player</p>
                     <p className="text-lg font-bold text-gray-900">{currentPlayer?.name}</p>
                   </div>
                   
@@ -507,7 +507,7 @@ export default function GamePage() {
                   <CardTitle className="text-gray-900">Deelnemen</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-900 mb-4">
                     Het spel wacht op spelers. Doe nu mee!
                   </p>
                   <Button onClick={() => setShowJoinDialog(true)} className="w-full">
@@ -527,15 +527,15 @@ export default function GamePage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Bank:</span>
+                  <span className="text-sm font-semibold text-gray-900">Bank:</span>
                   <span className="font-bold text-gray-900">{formatCurrency(game?.bank.balance || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Side Pot:</span>
+                  <span className="text-sm font-semibold text-gray-900">Side Pot:</span>
                   <span className="font-bold text-gray-900">{formatCurrency(game?.sidePot.balance || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Status:</span>
+                  <span className="text-sm font-semibold text-gray-900">Status:</span>
                   <span className="font-bold capitalize text-gray-900">{game?.status}</span>
                 </div>
               </CardContent>
@@ -581,7 +581,7 @@ export default function GamePage() {
                       <p className="text-lg text-green-700">Vereenvoudigde Versie</p>
                       {myPlayer && (
                         <div className="mt-6 p-4 bg-white/80 rounded-lg shadow">
-                          <p className="text-sm text-gray-600">Your Position</p>
+                          <p className="text-sm text-gray-900 font-medium">Your Position</p>
                           <p className="text-3xl font-bold text-primary">{myPlayer.position}</p>
                         </div>
                       )}
@@ -592,18 +592,18 @@ export default function GamePage() {
                 {/* Last Turn Result */}
                 {lastTurnResult && (
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="font-semibold mb-2">Last Turn:</p>
+                    <p className="font-semibold text-gray-900 mb-2">Last Turn:</p>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-600">Dice:</span>
-                        <span className="ml-2 font-semibold">{lastTurnResult.dice.dice1} + {lastTurnResult.dice.dice2} = {lastTurnResult.dice.total}</span>
+                        <span className="text-gray-900 font-medium">Dice:</span>
+                        <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.dice.dice1} + {lastTurnResult.dice.dice2} = {lastTurnResult.dice.total}</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Moved:</span>
-                        <span className="ml-2 font-semibold">{lastTurnResult.movement.oldPosition} → {lastTurnResult.movement.newPosition}</span>
+                        <span className="text-gray-900 font-medium">Moved:</span>
+                        <span className="ml-2 font-semibold text-gray-900">{lastTurnResult.movement.oldPosition} → {lastTurnResult.movement.newPosition}</span>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-gray-700">{lastTurnResult.tileInteraction.message}</p>
+                        <p className="text-gray-900">{lastTurnResult.tileInteraction.message}</p>
                       </div>
                     </div>
                   </div>
