@@ -12,9 +12,11 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/toast';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { getGame, joinGame, rollDice } from '@/lib/api';
+import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '@/lib/validation';
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import type { PlayerToken } from '@/lib/types';
@@ -96,10 +98,18 @@ export default function GamePage() {
           setShowJoinDialog(true);
         }
       } else {
-        setError(response.error || 'Failed to load game');
+        const errorMsg = response.error || 'Kon spel niet laden';
+        setError(errorMsg);
+        
+        // Only show toast for non-404 errors (404 is handled in UI)
+        if (!errorMsg.includes('niet gevonden')) {
+          toast.error(errorMsg);
+        }
       }
     } catch (err) {
-      setError('Network error');
+      const errorMsg = 'Netwerk fout bij laden spel';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -109,17 +119,41 @@ export default function GamePage() {
    * Join the game as a new player.
    */
   const handleJoinGame = async () => {
-    if (!playerName.trim()) {
-      setError('Please enter your name');
+    setError(null);
+    
+    // Rate limiting
+    if (!rateLimiter.isAllowed(`join-game-${gameId}`, 3, 30000)) {
+      const seconds = rateLimiter.getTimeUntilReset(`join-game-${gameId}`, 30000);
+      const errorMsg = `Te veel pogingen. Wacht ${seconds} seconden.`;
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
+    // Sanitize input
+    const sanitizedName = sanitizeString(playerName);
+    
+    // Validate player name
+    const nameValidation = validatePlayerName(sanitizedName);
+    if (!nameValidation.valid) {
+      setError(nameValidation.error || 'Ongeldige naam');
+      toast.error(nameValidation.error || 'Ongeldige naam');
+      return;
+    }
+    
+    // Validate token
+    const tokenValidation = validateToken(selectedToken);
+    if (!tokenValidation.valid) {
+      setError(tokenValidation.error || 'Ongeldige token');
+      toast.error(tokenValidation.error || 'Ongeldige token');
       return;
     }
     
     setLoading(true);
-    setError(null);
     
     try {
       const response = await joinGame(gameId, {
-        name: playerName.trim(),
+        name: sanitizedName,
         token: selectedToken,
       });
       
@@ -127,11 +161,16 @@ export default function GamePage() {
         setGame(response.data.game);
         setCurrentPlayerId(response.data.player.id);
         setShowJoinDialog(false);
+        toast.success(`Welkom ${sanitizedName}! 👋`);
       } else {
-        setError(response.error || 'Failed to join game');
+        const errorMsg = response.error || 'Kon niet deelnemen aan spel';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      setError('Network error');
+      const errorMsg = 'Netwerk fout';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

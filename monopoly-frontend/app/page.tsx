@@ -12,7 +12,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/toast';
 import { createGame } from '@/lib/api';
+import { validatePlayerName, validateGameId, sanitizeString, rateLimiter } from '@/lib/validation';
 import { Gamepad2, Plus, LogIn } from 'lucide-react';
 
 export default function Home() {
@@ -27,25 +29,45 @@ export default function Home() {
    * Create a new game and navigate to it.
    */
   const handleCreateGame = async () => {
-    if (!creatorName.trim()) {
-      setError('Voer je naam in');
+    setError(null);
+    
+    // Rate limiting check
+    if (!rateLimiter.isAllowed('create-game', 3, 60000)) {
+      const seconds = rateLimiter.getTimeUntilReset('create-game', 60000);
+      setError(`Te veel pogingen. Probeer over ${seconds} seconden opnieuw.`);
+      toast.error(`Wacht ${seconds} seconden voordat je opnieuw een spel maakt`);
+      return;
+    }
+    
+    // Sanitize input
+    const sanitizedName = sanitizeString(creatorName);
+    
+    // Validate player name
+    const validation = validatePlayerName(sanitizedName);
+    if (!validation.valid) {
+      setError(validation.error || 'Ongeldige naam');
+      toast.error(validation.error || 'Ongeldige naam');
       return;
     }
 
     setIsCreating(true);
-    setError(null);
 
     try {
       const response = await createGame();
       
       if (response.success && response.data) {
+        toast.success('Spel aangemaakt! 🎮');
         // Navigate to game page (will show join dialog)
-        router.push(`/game/${response.data.id}?name=${encodeURIComponent(creatorName)}`);
+        router.push(`/game/${response.data.id}?name=${encodeURIComponent(sanitizedName)}`);
       } else {
-        setError(response.error || 'Failed to create game');
+        const errorMsg = response.error || 'Kon spel niet aanmaken';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      const errorMsg = 'Netwerk fout. Controleer je verbinding.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsCreating(false);
     }
@@ -55,13 +77,22 @@ export default function Home() {
    * Join an existing game by ID.
    */
   const handleJoinGame = () => {
-    if (!joinGameId.trim()) {
-      setError('Please enter a game ID');
+    setError(null);
+    
+    // Sanitize input
+    const sanitizedGameId = sanitizeString(joinGameId);
+    
+    // Validate game ID
+    const validation = validateGameId(sanitizedGameId);
+    if (!validation.valid) {
+      setError(validation.error || 'Ongeldig Game ID');
+      toast.error(validation.error || 'Ongeldig Game ID');
       return;
     }
 
+    toast.info('Deelnemen aan spel...');
     // Navigate to game page
-    router.push(`/game/${joinGameId.trim()}`);
+    router.push(`/game/${sanitizedGameId}`);
   };
 
   return (

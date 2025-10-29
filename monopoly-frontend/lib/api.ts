@@ -15,20 +15,84 @@ import type {
 } from './types';
 
 /**
- * Base fetch wrapper with error handling.
+ * Default timeout for API requests (in milliseconds).
+ */
+const DEFAULT_TIMEOUT = 10000;
+
+/**
+ * Fetch with timeout support.
+ * 
+ * @param url - Request URL
+ * @param options - Fetch options
+ * @param timeout - Timeout in milliseconds
+ * @returns Response
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout: number = DEFAULT_TIMEOUT
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout - server niet bereikbaar');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get user-friendly error message based on HTTP status.
+ * 
+ * @param status - HTTP status code
+ * @returns User-friendly error message
+ */
+function getErrorMessage(status: number): string {
+  switch (status) {
+    case 400:
+      return 'Ongeldige aanvraag';
+    case 404:
+      return 'Spel niet gevonden';
+    case 409:
+      return 'Conflict - actie niet mogelijk';
+    case 422:
+      return 'Validatie fout';
+    case 500:
+      return 'Server fout';
+    case 503:
+      return 'Service tijdelijk niet beschikbaar';
+    default:
+      return `Onverwachte fout (${status})`;
+  }
+}
+
+/**
+ * Base fetch wrapper with error handling, timeout, and retries.
  * 
  * @param endpoint - API endpoint (relative to base URL)
  * @param options - Fetch options
+ * @param retries - Number of retry attempts for network errors
  * @returns API response
  */
 async function apiFetch<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retries: number = 0
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`;
   
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -36,16 +100,42 @@ async function apiFetch<T = any>(
       },
     });
 
+    // Handle non-JSON responses (e.g., HTML error pages)
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      console.error('Non-JSON response:', response.status, response.statusText);
+      return {
+        success: false,
+        error: getErrorMessage(response.status),
+      };
+    }
+
     // Parse JSON response
     const data = await response.json();
 
-    // Return data (backend already provides success/error structure)
+    // If response is not ok, but we got JSON, use that error
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || data.message || getErrorMessage(response.status),
+      };
+    }
+
+    // Return data (backend provides success/error structure)
     return data;
   } catch (error) {
     console.error('API Error:', error);
+    
+    // Retry on network errors
+    if (retries > 0 && error instanceof Error) {
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+      return apiFetch<T>(endpoint, options, retries - 1);
+    }
+    
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error',
+      error: error instanceof Error ? error.message : 'Netwerk fout - controleer je verbinding',
     };
   }
 }
@@ -60,7 +150,7 @@ async function apiFetch<T = any>(
 export async function createGame(): Promise<ApiResponse<Game>> {
   return apiFetch<Game>('/api/games', {
     method: 'POST',
-  });
+  }, 2); // Retry twice on network errors
 }
 
 /**
@@ -72,7 +162,7 @@ export async function createGame(): Promise<ApiResponse<Game>> {
  * @returns Game state
  */
 export async function getGame(gameId: string): Promise<ApiResponse<Game>> {
-  return apiFetch<Game>(`/api/games/${gameId}`);
+  return apiFetch<Game>(`/api/games/${gameId}`, {}, 3); // Retry 3 times for critical read operation
 }
 
 /**
