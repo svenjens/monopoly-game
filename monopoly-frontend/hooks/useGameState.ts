@@ -130,6 +130,7 @@ export const useGameState = create<GameState>((set, get) => ({
       case 'game:started':
       case 'game:ended':
       case 'house:built':
+      case 'property:purchased':
         // All these events should update the full game state
         if (data?.game || data?.gameState || data) {
           const gameData = data.game || data.gameState || data;
@@ -161,10 +162,6 @@ export const useGameState = create<GameState>((set, get) => ({
       case WS_EVENTS.PLAYER_MOVED:
         console.log('👟 Player moved:', data);
         // Game state will be updated via TURN_ENDED
-        break;
-
-      case WS_EVENTS.PROPERTY_PURCHASED:
-        console.log('🏠 Property purchased:', data);
         break;
 
       case WS_EVENTS.RENT_PAID:
