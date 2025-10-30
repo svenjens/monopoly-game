@@ -18,7 +18,7 @@ class TurnResultDTO
     public ?array $jail;
     public ?array $tileInteraction;
     public array $bankruptcy;
-    public array $nextPlayer;
+    public ?array $nextPlayer;
     public array $gameState;
     public bool $gameFinished;
 
