@@ -44,15 +44,23 @@ class GameStateDTO
         // Convert players to array
         $dto->players = array_map(function($player) use ($game) {
             // Convert player's properties to array
-            $properties = array_map(function($property) {
+            $properties = array_map(function($property) use ($game, $player) {
+                $rent = null;
+                if ($property instanceof \App\Entity\PropertyTile) {
+                    $rent = $property->calculateRent($game);
+                } elseif ($property instanceof \App\Entity\RailroadTile) {
+                    $rent = $property->getRent($player->getRailroadCount());
+                } elseif ($property instanceof \App\Entity\UtilityTile) {
+                    $rent = $property->getRent(7, $player->getUtilityCount()); // Example with dice roll 7
+                }
+                
                 return [
                     'position' => $property->getPosition(),
                     'name' => $property->getName(),
                     'type' => $property->getType()->value,
                     'color' => method_exists($property, 'getColor') ? $property->getColor() : null,
                     'price' => method_exists($property, 'getPrice') ? $property->getPrice() : null,
-                    'rent' => method_exists($property, 'getRent') ? $property->getRent() : 
-                              (method_exists($property, 'calculateRent') ? $property->calculateRent($game) : null),
+                    'rent' => $rent,
                     'houses' => method_exists($property, 'getHouses') ? $property->getHouses() : null,
                     'buildCost' => method_exists($property, 'getBuildCost') ? $property->getBuildCost() : null,
                 ];
