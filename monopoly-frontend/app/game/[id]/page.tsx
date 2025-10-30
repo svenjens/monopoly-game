@@ -138,6 +138,7 @@ export default function GamePage() {
     propertyName: string;
     price: number;
     canAfford: boolean;
+    position?: number;
   } | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   
@@ -214,6 +215,7 @@ export default function GamePage() {
     
     const tile = lastTurnResult.tileInteraction;
     const player = lastTurnResult.player;
+    const movement = lastTurnResult.movement;
     
     // Only show property dialog if it's for MY player
     if (tile?.action === 'property_available' && player?.id === currentPlayerId) {
@@ -222,6 +224,7 @@ export default function GamePage() {
         propertyName: tile.propertyName,
         price: tile.price,
         canAfford: tile.canAfford,
+        position: movement?.newPosition || player?.position,
       });
     }
   }, [lastTurnResult, currentPlayerId]); // Run whenever currentPlayerId changes
@@ -785,11 +788,11 @@ export default function GamePage() {
    * Purchase property.
    */
   const handlePurchaseProperty = async () => {
-    if (!propertyOffer || isPurchasing || !gameId) return;
+    if (!propertyOffer || isPurchasing || !gameId || !currentPlayerId) return;
     
     setIsPurchasing(true);
     try {
-      const response = await purchaseProperty(gameId);
+      const response = await purchaseProperty(gameId, propertyOffer.position, currentPlayerId);
       
       if (response.success && response.data) {
         toast.success(`✅ ${propertyOffer.propertyName} gekocht!`);

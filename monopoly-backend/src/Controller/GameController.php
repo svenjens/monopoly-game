@@ -262,21 +262,45 @@ class GameController extends AbstractController
         }
 
         try {
-            $player = $game->getCurrentPlayer();
-            $tile = $game->getBoard()->getTile($player->getPosition());
+            $data = json_decode($request->getContent(), true);
+            $position = $data['position'] ?? null;
+            
+            // Find the player who wants to buy (not necessarily current player)
+            $playerId = $data['playerId'] ?? null;
+            $player = null;
+            
+            if ($playerId) {
+                foreach ($game->getPlayers() as $p) {
+                    if ($p->getId() === $playerId) {
+                        $player = $p;
+                        break;
+                    }
+                }
+            }
+            
+            if (!$player) {
+                $player = $game->getCurrentPlayer();
+            }
+            
+            // Use provided position or fall back to current position
+            $tilePosition = $position ?? $player->getPosition();
+            $tile = $game->getBoard()->getTile($tilePosition);
 
             // Check if tile is a purchasable property
             if (!method_exists($tile, 'getOwner') || !method_exists($tile, 'setOwner')) {
                 return $this->json([
                     'success' => false,
+                    'error' => 'Dit hokje is geen property die je kunt kopen',
                     'message' => 'This tile is not a property',
                 ], Response::HTTP_BAD_REQUEST);
             }
 
             // Check if property is already owned
             if ($tile->getOwner() !== null) {
+                $ownerName = $tile->getOwner()->getName();
                 return $this->json([
                     'success' => false,
+                    'error' => "Deze property is al verkocht aan {$ownerName}",
                     'message' => 'Property is already owned',
                 ], Response::HTTP_BAD_REQUEST);
             }
@@ -288,6 +312,7 @@ class GameController extends AbstractController
             if ($player->getBalance() < $price) {
                 return $this->json([
                     'success' => false,
+                    'error' => "Niet genoeg geld! Je hebt €{$player->getBalance()}, maar dit kost €{$price}",
                     'message' => 'Insufficient funds',
                 ], Response::HTTP_BAD_REQUEST);
             }

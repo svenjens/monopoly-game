@@ -269,11 +269,14 @@ export async function listGames(): Promise<ApiResponse<{ games: GameSummary[]; t
  * POST /api/games/{id}/purchase
  * 
  * @param gameId - Game identifier
+ * @param position - Board position of the property
+ * @param playerId - ID of the player making the purchase
  * @returns Purchase result with updated game state
  */
-export async function purchaseProperty(gameId: string): Promise<ApiResponse<{ purchase: any; gameState: Game }>> {
+export async function purchaseProperty(gameId: string, position?: number, playerId?: string): Promise<ApiResponse<{ purchase: any; gameState: Game }>> {
   return apiFetch<{ purchase: any; gameState: Game }>(`/api/games/${gameId}/purchase`, {
     method: 'POST',
+    body: JSON.stringify({ position, playerId }),
   });
 }
 
