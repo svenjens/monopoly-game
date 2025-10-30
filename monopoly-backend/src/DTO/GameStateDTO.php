@@ -83,7 +83,7 @@ class GameStateDTO
         }, $game->getPlayers());
 
         // Convert board tiles to array (simplified)
-        $dto->board = array_map(function($tile) {
+        $dto->board = array_map(function($tile) use ($game) {
             $tileData = [
                 'position' => $tile->getPosition(),
                 'name' => $tile->getName(),
@@ -95,10 +95,10 @@ class GameStateDTO
                 $tileData['price'] = $tile->getPrice();
             }
             if (method_exists($tile, 'getRent')) {
-                // For PropertyTile, getRent() has no parameters
-                // For RailroadTile and UtilityTile, we'll show base rent
+                // For PropertyTile, calculate rent based on houses/monopoly
+                // For RailroadTile and UtilityTile, show base rent
                 if ($tile instanceof \App\Entity\PropertyTile) {
-                    $tileData['rent'] = $tile->getRent();
+                    $tileData['rent'] = $tile->calculateRent($game); // Use calculated rent with houses/monopoly
                 } elseif ($tile instanceof \App\Entity\RailroadTile) {
                     $tileData['rent'] = $tile->getRent(1); // Base rent for 1 railroad
                 } elseif ($tile instanceof \App\Entity\UtilityTile) {
