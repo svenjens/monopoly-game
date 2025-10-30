@@ -9,7 +9,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,9 +23,6 @@ import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import type { PlayerToken } from '@/lib/types';
 import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Users, DollarSign, Trophy, Copy, Check, Share2 } from 'lucide-react';
-
-// Dynamic import for Confetti (client-side only)
-const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 // Import Framer Motion for animations
 import { motion, AnimatePresence } from 'framer-motion';
