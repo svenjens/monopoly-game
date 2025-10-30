@@ -1317,11 +1317,14 @@ export default function GamePage() {
                   
                   <Button
                     onClick={handleRollDice}
-                    disabled={!isMyTurn || isRolling || !!propertyOffer}
+                    disabled={!isMyTurn || isRolling || !!propertyOffer || currentPlayer?.inJail}
                     className="w-full"
                     size="lg"
+                    title={currentPlayer?.inJail ? 'Je zit in de gevangenis - betaal €50 of gooi dubbel om vrij te komen' : ''}
                   >
-                    {isRolling ? 'Gooien...' : isMyTurn ? 'Gooi Dobbelstenen' : 'Wachten op beurt...'}
+                    {isRolling ? 'Gooien...' : 
+                     currentPlayer?.inJail ? '🔒 In Gevangenis' :
+                     isMyTurn ? 'Gooi Dobbelstenen' : 'Wachten op beurt...'}
                   </Button>
                   
                   {error && <p className="text-sm text-red-600">{error}</p>}
