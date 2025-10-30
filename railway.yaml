@@ -1,0 +1,55 @@
+# Railway Multi-Service Configuration
+# Note: Railway does NOT fully support monorepo IaC
+# You still need to manually:
+# 1. Add 3 services with different Root Directories
+# 2. Link environment variables between services
+# 3. Add Redis from template
+
+# This file documents the configuration but cannot auto-deploy
+
+services:
+  redis:
+    # Use Railway's Redis template (Database > Add Redis)
+    # This creates a managed Redis instance
+    source:
+      type: template
+      name: redis
+    
+  backend:
+    source:
+      repo: monopoly-game
+      rootDirectory: /monopoly-backend
+    build:
+      builder: DOCKERFILE
+      dockerfilePath: Dockerfile
+    deploy:
+      startCommand: sh -c 'php bin/console websocket:start & php -S 0.0.0.0:8000 -t public/'
+      restartPolicyType: ON_FAILURE
+    healthcheck:
+      path: /api/games
+      timeout: 100
+    env:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      # Manual: Link these in Railway UI
+      # REDIS_HOST: ${{redis.REDIS_PRIVATE_URL}}
+      # CORS_ALLOW_ORIGIN: https://${{frontend.RAILWAY_PUBLIC_DOMAIN}}
+    
+  frontend:
+    source:
+      repo: monopoly-game
+      rootDirectory: /monopoly-frontend
+    build:
+      builder: NIXPACKS
+    deploy:
+      startCommand: npm run start
+      restartPolicyType: ON_FAILURE
+    healthcheck:
+      path: /
+      timeout: 100
+    env:
+      NODE_ENV: production
+      # Manual: Link these in Railway UI
+      # NEXT_PUBLIC_API_URL: https://${{backend.RAILWAY_PUBLIC_DOMAIN}}
+      # NEXT_PUBLIC_WS_URL: wss://${{backend.RAILWAY_PUBLIC_DOMAIN}}
+
