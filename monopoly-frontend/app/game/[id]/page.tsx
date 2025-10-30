@@ -203,14 +203,8 @@ export default function GamePage() {
     }
   }, [currentPlayerId, gameId, setCurrentPlayerId]);
   
-  /**
-   * Close property offer dialog when it's no longer your turn.
-   */
-  useEffect(() => {
-    if (propertyOffer && !isMyTurn) {
-      setPropertyOffer(null);
-    }
-  }, [isMyTurn, propertyOffer]);
+  // Removed: Property offer should stay open even if turn switches
+  // The dialog has its own buy/decline buttons to close it
   
   /**
    * Handle property offers from lastTurnResult (WebSocket updates).
@@ -569,8 +563,7 @@ export default function GamePage() {
       return;
     }
     
-    // Close any open dialogs from previous turn
-    setPropertyOffer(null);
+    // Don't close property offer here - let user decide to buy/decline first
     
     // Rate limiting for dice rolls
     if (!rateLimiter.isAllowed(`roll-dice-${gameId}`, 10, 10000)) {
