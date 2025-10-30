@@ -1298,19 +1298,19 @@ export default function GamePage() {
                   )}
                   
                   {/* Jail Payment Option */}
-                  {currentPlayer?.inJail && isMyTurn && !propertyOffer && (
+                  {myPlayer?.inJail && isMyTurn && !propertyOffer && (
                     <div className="bg-orange-50 border-2 border-orange-500 rounded-lg p-4">
                       <h3 className="font-bold text-gray-900 mb-2">🔒 In de Gevangenis</h3>
                       <p className="text-sm text-gray-700 mb-3">
-                        Beurt {currentPlayer.jailTurns}/3 - Betaal €50 om nu vrij te komen
+                        Beurt {myPlayer.jailTurns || 0}/3 - Betaal €50 om nu vrij te komen
                       </p>
                       <Button
                         onClick={handlePayJailFee}
-                        disabled={currentPlayer.balance < 50}
+                        disabled={myPlayer.balance < 50}
                         className="w-full bg-orange-600 hover:bg-orange-700"
                         size="sm"
                       >
-                        {currentPlayer.balance < 50 ? '⚠️ Niet genoeg geld' : '💰 Betaal €50'}
+                        {myPlayer.balance < 50 ? '⚠️ Niet genoeg geld' : '💰 Betaal €50'}
                       </Button>
                     </div>
                   )}
@@ -1318,12 +1318,12 @@ export default function GamePage() {
                   <Button
                     onClick={handleRollDice}
                     disabled={!isMyTurn || isRolling || !!propertyOffer}
-                    className={`w-full ${currentPlayer?.inJail ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+                    className={`w-full ${(isMyTurn && myPlayer?.inJail) ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
                     size="lg"
-                    title={currentPlayer?.inJail ? 'Gooi dubbel om vrij te komen uit de gevangenis!' : ''}
+                    title={(isMyTurn && myPlayer?.inJail) ? 'Gooi dubbel om vrij te komen uit de gevangenis!' : ''}
                   >
                     {isRolling ? 'Gooien...' : 
-                     currentPlayer?.inJail ? '🎲 Gooi voor Dubbel (Gevangenis)' :
+                     (isMyTurn && myPlayer?.inJail) ? '🎲 Gooi voor Dubbel (Gevangenis)' :
                      isMyTurn ? 'Gooi Dobbelstenen' : 'Wachten op beurt...'}
                   </Button>
                   
