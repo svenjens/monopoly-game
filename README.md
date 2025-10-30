@@ -438,53 +438,6 @@ monopoly-game/
 
 **Conclusie**: Docker is **industry standard** voor moderne development.
 
-## 🚂 Railway Deployment
-
-### Automatische Setup
-
-Deze monorepo is geconfigureerd voor **automatische Railway deployment**. Railway detecteert alle services via `railway.toml` files:
-
-**Services die automatisch worden gedeployed:**
-1. 🔴 **Redis** (`/monopoly-redis`) - In-memory datastore
-2. ⚙️ **Backend** (`/monopoly-backend`) - PHP Symfony API + WebSocket
-3. 🎨 **Frontend** (`/monopoly-frontend`) - Next.js UI
-
-### Deployment Stappen
-
-1. **Connect GitHub repository** in Railway
-2. Railway detecteert automatisch alle 3 services
-3. Deploy in deze volgorde:
-   - Redis eerst (anderen hebben dit nodig)
-   - Backend (connecteert met Redis)
-   - Frontend (connecteert met Backend)
-
-### Environment Variables
-
-Railway moet deze automatisch koppelen tussen services:
-
-**Backend:**
-```bash
-REDIS_HOST=${{monopoly-redis.RAILWAY_PRIVATE_DOMAIN}}:6379
-CORS_ALLOW_ORIGIN=https://${{monopoly-frontend.RAILWAY_PUBLIC_DOMAIN}}
-APP_ENV=prod
-APP_DEBUG=0
-```
-
-**Frontend:**
-```bash
-NEXT_PUBLIC_API_URL=https://${{monopoly-backend.RAILWAY_PUBLIC_DOMAIN}}
-NEXT_PUBLIC_WS_URL=wss://${{monopoly-backend.RAILWAY_PUBLIC_DOMAIN}}
-```
-
-### Service Detection
-
-Railway gebruikt deze configuratie files:
-- `railway.toml` in elke service folder
-- `Dockerfile` voor backend en redis
-- Nixpacks auto-detect voor frontend
-
-Geen manual configuratie nodig! 🎉
-
 ## 📝 Development Notes
 
 - Game state is volledig in-memory (geen persistence tussen restarts)
