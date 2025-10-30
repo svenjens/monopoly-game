@@ -1126,14 +1126,14 @@ export default function GamePage() {
             </Card>
             
             {/* Mijn Bezittingen */}
-            {currentPlayer && currentPlayer.properties && currentPlayer.properties.length > 0 && (
+            {myPlayer && myPlayer.properties && myPlayer.properties.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-gray-900">🏠 Mijn Bezittingen ({currentPlayer.properties.length})</CardTitle>
+                  <CardTitle className="text-gray-900">🏠 Mijn Bezittingen ({myPlayer.properties.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {currentPlayer.properties.map((property: any) => {
+                    {myPlayer.properties.map((property: any) => {
                       // Determine property color or type
                       const propertyColor = property.color || 'gray';
                       const colorClass = {
@@ -1154,7 +1154,7 @@ export default function GamePage() {
                       const houses = property.houses || 0;
                       const hasHotel = houses === 5;
                       const canBuild = isBuildable && houses < 5;
-                      const monopoly = property.color ? hasMonopoly(property.color, currentPlayer.properties) : false;
+                      const monopoly = property.color ? hasMonopoly(property.color, myPlayer.properties) : false;
                       const canAffordBuild = property.buildCost && myPlayer && myPlayer.balance >= property.buildCost;
                       
                       return (
