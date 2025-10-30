@@ -1,0 +1,15 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "sh -c 'php bin/console websocket:start & php -S 0.0.0.0:8000 -t public/'"
+healthcheckPath = "/api/games"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[env]
+APP_ENV = "prod"
+APP_DEBUG = "0"
+

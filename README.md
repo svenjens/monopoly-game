@@ -292,16 +292,19 @@ monopoly-game/
 
 ### Gameplay
 - `POST /api/games/{id}/roll` - Gooi dobbelstenen en voer turn uit
-- `POST /api/games/{id}/purchase` - Koop property waar je op staat
+- `POST /api/games/{id}/purchase` - Koop property (body: {position, playerId})
+- `POST /api/games/{id}/decline-property` - Weiger property aankoop (body: {playerId})
 - `POST /api/games/{id}/build-house` - Bouw huis op property (body: {position})
 - `POST /api/games/{id}/pay-jail` - Betaal €50 om uit gevangenis te komen
 
 ### WebSocket Events
 - `player:joined` - Speler joined game
 - `game:started` - Game gestart
-- `turn:ended` - Turn afgerond met volledige state
+- `turn:ended` - Turn afgerond met volledige state (inclusief property offers)
 - `game:ended` - Game beëindigd
 - `house:built` - Huis/hotel gebouwd
+- `property:purchased` - Property aangekocht door speler
+- `property:declined` - Property aankoop geweigerd
 
 ## 🧪 Tech Stack
 
@@ -316,9 +319,9 @@ monopoly-game/
 - **Next.js 14 (App Router)** - React framework, SSR, RSC ready
 - **TypeScript** - Type safety, beter onderhoudbaar
 - **Tailwind CSS** - Utility-first, snel prototypen, klein bundle
-- **Framer Motion** - Smooth animaties, declarative API
+- **Framer Motion** - Smooth animaties voor tokens en UI transitions
 - **Zustand** - Lightweight state management, geen boilerplate
-- **react-confetti** - Winnaar celebratie
+- **Lucide React** - Modern icon library
 
 ### DevOps
 - **Docker & Docker Compose** - Reproducible environments
