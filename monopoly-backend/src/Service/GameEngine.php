@@ -112,9 +112,11 @@ class GameEngine
         // Step 5: Check for bankruptcy
         $bankruptcyResult = $this->checkBankruptcy($game, $player);
         
-        // Step 6: Advance to next player (skip if game ended)
+        // Step 6: Advance to next player (skip if game ended or waiting for property decision)
         $gameEnded = $bankruptcyResult['isBankrupt'] && $bankruptcyResult['gameEnded'];
-        if (!$gameEnded) {
+        $waitingForPropertyDecision = $tileInteraction && $tileInteraction['action'] === 'property_available';
+        
+        if (!$gameEnded && !$waitingForPropertyDecision) {
             // Move to next active player
             $this->advanceToNextActivePlayer($game);
         }

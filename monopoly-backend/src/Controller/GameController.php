@@ -322,6 +322,9 @@ class GameController extends AbstractController
             $game->getBank()->addBalance($price);
             $tile->setOwner($player);
             $player->addProperty($tile);
+            
+            // Advance to next player now that decision has been made
+            $game->advanceToNextPlayer();
 
             $this->gameRepository->save($game);
 
@@ -354,6 +357,80 @@ class GameController extends AbstractController
                 'success' => true,
                 'data' => [
                     'purchase' => $purchaseResult,
+                    'gameState' => $gameState->toArray(),
+                ],
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Decline a property purchase offer.
+     * 
+     * POST /api/games/{id}/decline-property
+     * 
+     * @param string $id Game identifier
+     * @return JsonResponse Result with updated game state
+     */
+    #[Route('/{id}/decline-property', name: 'decline_property', methods: ['POST'])]
+    public function declineProperty(string $id, Request $request): JsonResponse
+    {
+        $game = $this->gameRepository->find($id);
+
+        if (!$game) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Game not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $data = json_decode($request->getContent(), true);
+            $playerId = $data['playerId'] ?? null;
+            
+            // Find the player who is declining
+            $player = null;
+            if ($playerId) {
+                foreach ($game->getPlayers() as $p) {
+                    if ($p->getId() === $playerId) {
+                        $player = $p;
+                        break;
+                    }
+                }
+            }
+            
+            if (!$player) {
+                $player = $game->getCurrentPlayer();
+            }
+            
+            // Advance to next player now that decision has been made
+            $game->advanceToNextPlayer();
+            
+            $this->gameRepository->save($game);
+
+            // Build response
+            $gameState = GameStateDTO::fromGame($game);
+
+            // Broadcast property:declined event via WebSocket
+            $this->broadcaster->broadcastToGame(
+                $id,
+                'property:declined',
+                [
+                    'player' => [
+                        'id' => $player->getId(),
+                        'name' => $player->getName(),
+                    ],
+                    'gameState' => $gameState->toArray(),
+                ]
+            );
+
+            return $this->json([
+                'success' => true,
+                'data' => [
                     'gameState' => $gameState->toArray(),
                 ],
             ]);

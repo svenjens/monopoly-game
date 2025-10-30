@@ -281,6 +281,22 @@ export async function purchaseProperty(gameId: string, position?: number, player
 }
 
 /**
+ * Decline a property purchase.
+ * 
+ * POST /api/games/{id}/decline-property
+ * 
+ * @param gameId - Game identifier
+ * @param playerId - ID of the player declining
+ * @returns Result with updated game state
+ */
+export async function declineProperty(gameId: string, playerId?: string): Promise<ApiResponse<{ gameState: Game }>> {
+  return apiFetch<{ gameState: Game }>(`/api/games/${gameId}/decline-property`, {
+    method: 'POST',
+    body: JSON.stringify({ playerId }),
+  });
+}
+
+/**
  * Pay €50 to get out of jail.
  * 
  * POST /api/games/{id}/pay-jail

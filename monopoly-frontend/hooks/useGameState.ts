@@ -131,6 +131,7 @@ export const useGameState = create<GameState>((set, get) => ({
       case 'game:ended':
       case 'house:built':
       case 'property:purchased':
+      case 'property:declined':
         // All these events should update the full game state
         if (data?.game || data?.gameState || data) {
           const gameData = data.game || data.gameState || data;

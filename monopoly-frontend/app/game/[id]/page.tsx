@@ -18,7 +18,7 @@ import { toast } from '@/components/ui/toast';
 import { CardModal } from '@/components/ui/card-modal';
 import { useGameState, useIsMyTurn, useMyPlayer, useCurrentPlayer } from '@/hooks/useGameState';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { getGame, joinGame, rollDice, startGame, endGame, purchaseProperty, payJailFee, buildHouse } from '@/lib/api';
+import { getGame, joinGame, rollDice, startGame, endGame, purchaseProperty, declineProperty, payJailFee, buildHouse } from '@/lib/api';
 import { validatePlayerName, validateToken, sanitizeString, rateLimiter } from '@/lib/validation';
 import { PLAYER_TOKENS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -825,15 +825,33 @@ export default function GamePage() {
   /**
    * Decline property purchase.
    */
-  const handleDeclineProperty = () => {
-    if (propertyOffer) {
-      toast.info(`❌ ${propertyOffer.propertyName} niet gekocht`);
-      addToGameLog(
-        'declined',
-        `⛔ Je koos ${propertyOffer.propertyName} niet te kopen`,
-      );
+  const handleDeclineProperty = async () => {
+    if (!propertyOffer || !gameId || !currentPlayerId) return;
+    
+    try {
+      const response = await declineProperty(gameId, currentPlayerId);
+      
+      if (response.success && response.data) {
+        toast.info(`❌ ${propertyOffer.propertyName} niet gekocht`);
+        addToGameLog(
+          'declined',
+          `⛔ Je koos ${propertyOffer.propertyName} niet te kopen`,
+          currentPlayerId,
+          currentPlayer?.name
+        );
+        
+        // Update game state
+        if (response.data.gameState) {
+          setGame(response.data.gameState);
+        }
+      } else {
+        toast.error(response.error || 'Kon decline niet verwerken');
+      }
+    } catch (err) {
+      toast.error('Netwerk fout bij decline');
+    } finally {
+      setPropertyOffer(null);
     }
-    setPropertyOffer(null);
   };
   
   /**
