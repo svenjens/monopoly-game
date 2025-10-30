@@ -324,7 +324,7 @@ class GameController extends AbstractController
             $player->addProperty($tile);
             
             // Advance to next player now that decision has been made
-            $game->advanceToNextPlayer();
+            $game->nextTurn();
 
             $this->gameRepository->save($game);
 
@@ -408,7 +408,7 @@ class GameController extends AbstractController
             }
             
             // Advance to next player now that decision has been made
-            $game->advanceToNextPlayer();
+            $game->nextTurn();
             
             $this->gameRepository->save($game);
 
