@@ -1317,13 +1317,13 @@ export default function GamePage() {
                   
                   <Button
                     onClick={handleRollDice}
-                    disabled={!isMyTurn || isRolling || !!propertyOffer || currentPlayer?.inJail}
-                    className="w-full"
+                    disabled={!isMyTurn || isRolling || !!propertyOffer}
+                    className={`w-full ${currentPlayer?.inJail ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
                     size="lg"
-                    title={currentPlayer?.inJail ? 'Je zit in de gevangenis - betaal €50 of gooi dubbel om vrij te komen' : ''}
+                    title={currentPlayer?.inJail ? 'Gooi dubbel om vrij te komen uit de gevangenis!' : ''}
                   >
                     {isRolling ? 'Gooien...' : 
-                     currentPlayer?.inJail ? '🔒 In Gevangenis' :
+                     currentPlayer?.inJail ? '🎲 Gooi voor Dubbel (Gevangenis)' :
                      isMyTurn ? 'Gooi Dobbelstenen' : 'Wachten op beurt...'}
                   </Button>
                   
