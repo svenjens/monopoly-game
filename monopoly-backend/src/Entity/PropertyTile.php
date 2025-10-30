@@ -239,7 +239,7 @@ class PropertyTile extends Tile
      * @param Game $game The current game instance
      * @return int The calculated rent amount
      */
-    private function calculateRent(Game $game): int
+    public function calculateRent(Game $game): int
     {
         if ($this->owner === null) {
             return 0;
