@@ -64,3 +64,21 @@ variable "certificate_arn" {
   default     = ""
 }
 
+variable "use_single_nat_gateway" {
+  description = "Use single NAT Gateway to save costs (not HA)"
+  type        = bool
+  default     = false
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "enable_container_insights" {
+  description = "Enable ECS Container Insights"
+  type        = bool
+  default     = true
+}
+

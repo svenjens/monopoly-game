@@ -50,26 +50,42 @@ Complete Infrastructure as Code deployment using Terraform en AWS ECS Fargate.
 
 ```bash
 cd terraform
+```
 
-# Kopieer voorbeeld configuratie
+**Voor POC/Development (goedkoop ~$60/maand):**
+```bash
+# Use POC configuratie
+terraform apply -var-file=environments/poc.tfvars
+```
+
+**Voor Production (high availability ~$120/maand):**
+```bash
+# Use Production configuratie
+terraform apply -var-file=environments/prod.tfvars
+```
+
+**Custom configuratie:**
+```bash
+# Kopieer voorbeeld en edit
 cp terraform.tfvars.example terraform.tfvars
-
-# Edit terraform.tfvars met je configuratie
 nano terraform.tfvars
 ```
 
-**Minimale configuratie (terraform.tfvars):**
+**Minimale configuratie:**
 ```hcl
 aws_region  = "eu-west-1"
-environment = "prod"
+environment = "poc"
 project_name = "monopoly-game"
+
+# Kosten optimalisaties voor POC:
+use_single_nat_gateway = true    # Single NAT Gateway
+backend_cpu = 256                 # Minimale resources
+backend_memory = 512
+log_retention_days = 3            # Korte retention
+enable_container_insights = false # Disable monitoring
 ```
 
-**Optioneel - Custom domain & SSL:**
-```hcl
-domain_name     = "monopoly.yourdomain.com"
-certificate_arn = "arn:aws:acm:eu-west-1:123456789012:certificate/abc-123"
-```
+**Zie ook**: [COST_OPTIMIZATION.md](../COST_OPTIMIZATION.md) voor kosten details
 
 ### Stap 2: Deploy Infrastructure
 
@@ -177,7 +193,24 @@ aws ecs describe-services \
 
 ## 🔄 Updates Deployen
 
-### Backend/Redis Updates
+### Automatisch via GitHub Actions (Recommended)
+
+Setup GitHub Secrets (zie `.github/workflows/README.md`):
+```bash
+# GitHub Settings → Secrets → Add:
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+```
+
+**Dan simpelweg push naar main**:
+```bash
+git add .
+git commit -m "feat: nieuwe feature"
+git push origin main
+# GitHub Actions deploy automatisch! 🚀
+```
+
+### Handmatig via Script
 
 ```bash
 # Build en push nieuwe images
@@ -188,12 +221,7 @@ Het script forceert automatisch een ECS redeploy.
 
 ### Frontend Updates
 
-Amplify deployt automatisch bij elke push naar `main` branch:
-```bash
-git add .
-git commit -m "feat: nieuwe feature"
-git push origin main
-```
+Amplify deployt automatisch bij elke push naar `main` branch.
 
 Monitor de build in Amplify Console.
 
