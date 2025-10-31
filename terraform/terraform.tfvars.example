@@ -1,0 +1,22 @@
+# AWS Configuration
+aws_region  = "eu-west-1"
+environment = "prod"
+
+# Project Configuration
+project_name = "monopoly-game"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# ECS Configuration
+backend_cpu            = 512  # 0.5 vCPU
+backend_memory         = 1024 # 1 GB
+backend_desired_count  = 1    # Number of backend tasks
+
+redis_cpu    = 256 # 0.25 vCPU
+redis_memory = 512 # 512 MB
+
+# Optional: Custom Domain & SSL
+# domain_name     = "monopoly.example.com"
+# certificate_arn = "arn:aws:acm:eu-west-1:123456789012:certificate/abc-123"
+
