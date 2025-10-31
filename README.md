@@ -205,23 +205,16 @@ monopoly-game/
 │   │   ├── Websocket/       # WebSocket server
 │   │   └── Command/         # Console commands
 │   ├── config/              # Symfony configuratie
-│   ├── Dockerfile           # Backend container
-│   └── railway.toml         # Railway deployment config
+│   └── Dockerfile           # Backend container
 │
 ├── monopoly-frontend/         # Next.js frontend
 │   ├── app/                 # Next.js App Router
 │   ├── components/          # React components
 │   ├── hooks/               # Custom hooks (WebSocket, GameState)
 │   ├── lib/                 # Utilities & API client
-│   ├── .env.example         # Environment variables template
-│   └── railway.toml         # Railway deployment config
+│   └── .env.example         # Environment variables template
 │
-├── monopoly-redis/            # Redis service
-│   ├── Dockerfile           # Redis container
-│   └── railway.toml         # Railway deployment config
-│
-├── docker-compose.yml        # Local development orchestration
-└── railway.toml             # Monorepo detection
+└── docker-compose.yml        # Local development orchestration
 ```
 
 ## 🎮 Game Features
